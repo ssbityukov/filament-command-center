@@ -7,7 +7,6 @@ namespace Bityukov\CommandCenter\Execution;
 use Bityukov\CommandCenter\Definitions\CommandDefinition;
 use Bityukov\CommandCenter\Runs\Run;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
-use Symfony\Component\Process\Exception\RuntimeException as ProcessRuntimeException;
 use Throwable;
 
 final class CommandRunner
@@ -46,7 +45,7 @@ final class CommandRunner
             });
         } catch (ProcessTimedOutException) {
             return $run->timeout($buffer);
-        } catch (ProcessRuntimeException|Throwable $exception) {
+        } catch (Throwable $exception) {
             return $run->withOutput($buffer)->fail($exception->getMessage());
         }
 

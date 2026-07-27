@@ -22,7 +22,7 @@ class CommandCenterServiceProvider extends PackageServiceProvider
     {
         $this->app->bind(ConfigSource::class, fn (): ConfigSource => new ConfigSource(
             commands: config('command-center.commands', []),
-            defaultTimeout: (int) config('command-center.default_timeout', 60),
+            defaultTimeout: (int) config('command-center.default_timeout', 30),
         ));
 
         $this->app->singleton(CommandRegistry::class, function ($app): CommandRegistry {

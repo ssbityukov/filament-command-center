@@ -64,6 +64,8 @@ final class ArgvBuilder
             return $element;
         }
 
+        $replacements = [];
+
         foreach ($matches[1] as $token) {
             $variable = $definition->variable($token);
 
@@ -81,9 +83,9 @@ final class ArgvBuilder
                 return null;
             }
 
-            $element = str_replace('{'.$token.'}', $value, $element);
+            $replacements['{'.$token.'}'] = $value;
         }
 
-        return $element;
+        return strtr($element, $replacements);
     }
 }

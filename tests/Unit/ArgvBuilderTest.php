@@ -101,3 +101,19 @@ it('substitutes multiple tokens in one element', function (): void {
 
     expect(buildArgv($command, ['from' => 'a', 'to' => 'b']))->toBe(['sync', 'a:b']);
 });
+
+it('does not let one value be clobbered by a sibling token substitution', function (): void {
+    $command = Command::make('x')
+        ->run('sync {from}:{to}')
+        ->variables([TextVariable::make('from'), TextVariable::make('to')]);
+
+    expect(buildArgv($command, ['from' => '{to}', 'to' => 'REAL']))->toBe(['sync', '{to}:REAL']);
+});
+
+it('does not let a value be substituted in either token order', function (): void {
+    $command = Command::make('x')
+        ->run('sync {from}:{to}')
+        ->variables([TextVariable::make('from'), TextVariable::make('to')]);
+
+    expect(buildArgv($command, ['from' => 'REAL', 'to' => '{from}']))->toBe(['sync', 'REAL:{from}']);
+});

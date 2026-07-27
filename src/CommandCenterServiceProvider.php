@@ -34,5 +34,9 @@ class CommandCenterServiceProvider extends PackageServiceProvider
         });
 
         $this->app->singleton(Authorization\Authorizer::class);
+
+        $this->app->singleton(Execution\ArgvBuilder::class);
+        $this->app->singleton(Execution\ProcessFactory::class);
+        $this->app->singleton(Execution\CommandRunner::class);
     }
 }

@@ -81,19 +81,64 @@ it('groups definitions, defaulting ungrouped ones', function (): void {
         ->and(array_keys($grouped['Commands']))->toBe(['b']);
 });
 
-it('memoizes definitions until flushed', function (): void {
-    config()->set('command-center.commands', ['a' => ['run' => 'a']]);
+it('queries each source only once until flushed', function (): void {
+    config()->set('command-center.commands', []);
+
+    $source = new class implements CommandSource
+    {
+        public int $calls = 0;
+
+        public function definitions(): array
+        {
+            $this->calls++;
+
+            return [];
+        }
+    };
 
     $registry = app(CommandRegistry::class);
+    $registry->addSource($source);
+
+    $registry->all();
+    $registry->all();
     $registry->all();
 
-    config()->set('command-center.commands', ['a' => ['run' => 'a'], 'b' => ['run' => 'b']]);
+    expect($source->calls)->toBe(1);
 
-    expect(array_keys($registry->all()))->toBe(['a']);
+    $registry->flush();
+    $registry->all();
+
+    expect($source->calls)->toBe(2);
+});
+
+it('reflects new definitions from a source after flushing', function (): void {
+    config()->set('command-center.commands', []);
+
+    $source = new class implements CommandSource
+    {
+        /** @var array<string, CommandDefinition> */
+        public array $definitions = [];
+
+        public function definitions(): array
+        {
+            return $this->definitions;
+        }
+    };
+
+    $registry = app(CommandRegistry::class);
+    $registry->addSource($source);
+
+    expect($registry->all())->toBe([]);
+
+    $source->definitions = [
+        'later' => Command::make('later')->run('cache:clear')->toDefinition(defaultTimeout: 60),
+    ];
+
+    expect(array_keys($registry->all()))->toBe([]);
 
     $registry->flush();
 
-    expect(array_keys($registry->all()))->toBe(['a', 'b']);
+    expect(array_keys($registry->all()))->toBe(['later']);
 });
 
 it('is a singleton', function (): void {

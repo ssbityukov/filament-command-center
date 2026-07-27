@@ -76,6 +76,14 @@ final class CommandRegistry
         return $grouped;
     }
 
+    /**
+     * Drop the memoized definitions so the next call re-queries every source.
+     *
+     * Sources whose underlying data can change between calls — a database-backed
+     * source, for instance — surface their changes after a flush. A config-backed
+     * source will not, because it captures its array at construction and Laravel
+     * config is static for the lifetime of a request.
+     */
     public function flush(): void
     {
         $this->memo = null;

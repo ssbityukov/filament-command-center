@@ -32,5 +32,7 @@ class CommandCenterServiceProvider extends PackageServiceProvider
 
             return new CommandRegistry($sources);
         });
+
+        $this->app->singleton(Authorization\Authorizer::class);
     }
 }

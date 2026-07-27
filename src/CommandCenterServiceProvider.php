@@ -25,7 +25,12 @@ class CommandCenterServiceProvider extends PackageServiceProvider
             defaultTimeout: (int) config('command-center.default_timeout', 30),
         ));
 
-        $this->app->singleton(CommandRegistry::class, function ($app): CommandRegistry {
+        // Scoped, not singleton: the registry memoizes every source's
+        // definitions, and a queue worker or Octane process would otherwise hold
+        // that memo for its whole lifetime. Scoped instances are reset between
+        // jobs and requests, so a source whose data changes — a database-backed
+        // one, say — cannot keep serving revoked definitions.
+        $this->app->scoped(CommandRegistry::class, function ($app): CommandRegistry {
             $sources = array_map(
                 static fn (string $source) => $app->make($source),
                 config('command-center.sources', []),

@@ -141,6 +141,17 @@ it('reflects new definitions from a source after flushing', function (): void {
     expect(array_keys($registry->all()))->toBe(['later']);
 });
 
-it('is a singleton', function (): void {
+it('resolves one shared instance per container scope', function (): void {
     expect(app(CommandRegistry::class))->toBe(app(CommandRegistry::class));
+});
+
+it('is rebuilt when the container scope is reset', function (): void {
+    // Scoped rather than singleton: a queue worker or Octane process resets
+    // scoped instances between jobs and requests, so a registry that memoized
+    // definitions from a mutable source cannot keep serving revoked ones.
+    $first = app(CommandRegistry::class);
+
+    app()->forgetScopedInstances();
+
+    expect(app(CommandRegistry::class))->not->toBe($first);
 });

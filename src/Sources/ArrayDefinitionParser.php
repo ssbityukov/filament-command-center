@@ -31,17 +31,26 @@ final class ArrayDefinitionParser
             $command->label($config['label']);
         }
 
-        if (($config['type'] ?? 'artisan') === 'shell') {
+        $type = $config['type'] ?? 'artisan';
+
+        if (! is_string($type) || ! in_array($type, ['artisan', 'shell'], true)) {
+            throw InvalidDefinitionException::unknownCommandType(
+                $key,
+                is_scalar($type) ? (string) $type : get_debug_type($type),
+            );
+        }
+
+        if ($type === 'shell') {
             $command->shell();
         }
 
         $command
-            ->group($config['group'] ?? null)
-            ->help($config['help'] ?? null)
-            ->queue($config['queue'] ?? false)
-            ->ability($config['ability'] ?? null)
-            ->concurrency($config['concurrency'] ?? null)
-            ->confirm($config['confirm'] ?? false)
+            ->group($this->nullableString($key, 'group', $config['group'] ?? null))
+            ->help($this->nullableString($key, 'help', $config['help'] ?? null))
+            ->queue($this->boolOrString($key, 'queue', $config['queue'] ?? false))
+            ->ability($this->nullableString($key, 'ability', $config['ability'] ?? null))
+            ->concurrency($this->nullableInt($key, 'concurrency', $config['concurrency'] ?? null))
+            ->confirm($this->boolOrString($key, 'confirm', $config['confirm'] ?? false))
             ->progress((bool) ($config['progress'] ?? false));
 
         if (isset($config['timeout'])) {
@@ -59,6 +68,51 @@ final class ArrayDefinitionParser
         $command->flags($this->parseFlags($config['flags'] ?? []));
 
         return $command->toDefinition($defaultTimeout);
+    }
+
+    /**
+     * Config arrays come from env() and YAML as often as from literal PHP, so a
+     * field can arrive as the wrong scalar type. Cast where a cast is
+     * meaningful, and refuse with a named error where it is not, rather than
+     * letting a raw TypeError out of a builder method.
+     */
+    private function nullableString(string $key, string $field, mixed $value): ?string
+    {
+        if ($value === null || is_string($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+
+        throw InvalidDefinitionException::invalidValue($key, $field, 'a string or null', get_debug_type($value));
+    }
+
+    private function nullableInt(string $key, string $field, mixed $value): ?int
+    {
+        if ($value === null || is_int($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+
+        throw InvalidDefinitionException::invalidValue($key, $field, 'an integer or null', get_debug_type($value));
+    }
+
+    private function boolOrString(string $key, string $field, mixed $value): bool|string
+    {
+        if (is_bool($value) || is_string($value)) {
+            return $value;
+        }
+
+        if ($value === null) {
+            return false;
+        }
+
+        throw InvalidDefinitionException::invalidValue($key, $field, 'a boolean or a string', get_debug_type($value));
     }
 
     /**
@@ -111,6 +165,7 @@ final class ArrayDefinitionParser
         return $variable
             ->required((bool) ($config['required'] ?? false))
             ->redact((bool) ($config['redact'] ?? false))
+            ->allowsLeadingDash((bool) ($config['allows_leading_dash'] ?? false))
             ->rules($config['rules'] ?? []);
     }
 

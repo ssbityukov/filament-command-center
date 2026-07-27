@@ -100,3 +100,62 @@ it('parses flags', function (): void {
     expect($definition->flags['--force']->label)->toBe('Force it')
         ->and($definition->flags['--force']->default)->toBeTrue();
 });
+
+it('throws on an unknown command type', function (): void {
+    (new ArrayDefinitionParser)->parse('x', ['run' => 'df -h', 'type' => 'Shell'], 60);
+})->throws(InvalidDefinitionException::class, 'Shell');
+
+it('accepts an explicit artisan type', function (): void {
+    $definition = (new ArrayDefinitionParser)->parse('x', ['run' => 'cache:clear', 'type' => 'artisan'], 60);
+
+    expect($definition->type)->toBe(CommandType::Artisan);
+});
+
+it('casts a numeric string concurrency', function (): void {
+    $definition = (new ArrayDefinitionParser)->parse('x', ['run' => 'cmd', 'concurrency' => '2'], 60);
+
+    expect($definition->concurrency)->toBe(2);
+});
+
+it('throws on a concurrency that is not numeric', function (): void {
+    (new ArrayDefinitionParser)->parse('x', ['run' => 'cmd', 'concurrency' => ['two']], 60);
+})->throws(InvalidDefinitionException::class, 'concurrency');
+
+it('throws on a queue value that is neither a boolean nor a string', function (): void {
+    (new ArrayDefinitionParser)->parse('x', ['run' => 'cmd', 'queue' => 1], 60);
+})->throws(InvalidDefinitionException::class, 'queue');
+
+it('throws on a confirm value that is neither a boolean nor a string', function (): void {
+    (new ArrayDefinitionParser)->parse('x', ['run' => 'cmd', 'confirm' => 1.5], 60);
+})->throws(InvalidDefinitionException::class, 'confirm');
+
+it('throws on a group that is not a string', function (): void {
+    (new ArrayDefinitionParser)->parse('x', ['run' => 'cmd', 'group' => ['Maintenance']], 60);
+})->throws(InvalidDefinitionException::class, 'group');
+
+it('casts a numeric group to a string', function (): void {
+    $definition = (new ArrayDefinitionParser)->parse('x', ['run' => 'cmd', 'group' => 2026], 60);
+
+    expect($definition->group)->toBe('2026');
+});
+
+it('refuses a token in the command position', function (): void {
+    (new ArrayDefinitionParser)->parse('x', [
+        'run' => '{bin} hi',
+        'type' => 'shell',
+        'variables' => ['bin' => ['type' => 'text']],
+    ], 60);
+})->throws(InvalidDefinitionException::class, 'x');
+
+it('parses allows_leading_dash', function (): void {
+    $definition = (new ArrayDefinitionParser)->parse('x', [
+        'run' => 'cmd {a} {b}',
+        'variables' => [
+            'a' => ['type' => 'text', 'allows_leading_dash' => true],
+            'b' => ['type' => 'text'],
+        ],
+    ], 60);
+
+    expect($definition->variable('a')->allowsLeadingDash)->toBeTrue()
+        ->and($definition->variable('b')->allowsLeadingDash)->toBeFalse();
+});

@@ -69,6 +69,18 @@ final class CheckCommand extends Command
             $this->errors[] = "[{$key}] has an empty run template.";
         }
 
+        // Command::toDefinition() already rejects this, so a definition normally
+        // never reaches here in that state — handle() reports the build failure
+        // instead. The check stays because a source may construct a
+        // CommandDefinition directly, and because reporting it as a plain error
+        // beats an exception if it ever does.
+        $firstElement = $this->firstElement($definition->run);
+
+        if ($firstElement !== null && preg_match('/\{\w+\}/', $firstElement) === 1) {
+            $this->errors[] = "[{$key}] uses a token in the command position of its run template; "
+                .'the first element must be a literal so a submitted value cannot choose what executes.';
+        }
+
         $tokens = $definition->tokens();
 
         foreach ($tokens as $token) {
@@ -95,8 +107,18 @@ final class CheckCommand extends Command
             $this->errors[] = "[{$key}] is a shell command but shell execution is disabled.";
         }
 
+        // A warning, not an error: Gate::has() only sees explicitly defined
+        // abilities, so a gate served by a Gate::before callback — how
+        // spatie/laravel-permission and every super-admin catch-all work — looks
+        // undefined here while authorizing correctly at runtime. An ability that
+        // really is undefined fails closed anyway (Gate::allows returns false,
+        // the command is hidden and denied), so this is a configuration smell
+        // rather than a hole, and failing CI for it pushes adopters to delete
+        // the very ability key the check exists to protect.
         if ($definition->ability !== null && ! $this->gateExists($definition->ability)) {
-            $this->errors[] = "[{$key}] requires ability \"{$definition->ability}\" but no such gate is defined.";
+            $this->warnings[] = "[{$key}] requires ability \"{$definition->ability}\", which is not "
+                .'explicitly defined as a gate. It may be served by a Gate::before callback; if it is '
+                .'not, the command is denied to everyone.';
         }
 
         if ($definition->timeout < 1) {
@@ -118,5 +140,12 @@ final class CheckCommand extends Command
     private function gateExists(string $ability): bool
     {
         return Gate::has($ability);
+    }
+
+    private function firstElement(string $run): ?string
+    {
+        $elements = preg_split('/\s+/', trim($run), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return $elements[0] ?? null;
     }
 }

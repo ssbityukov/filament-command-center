@@ -17,6 +17,7 @@ abstract class Variable
         public readonly bool $redact,
         public readonly ?string $help,
         public readonly array $rules,
+        public readonly bool $allowsLeadingDash = false,
     ) {}
 
     abstract public function fieldType(): string;
@@ -74,6 +75,19 @@ abstract class Variable
     }
 
     /**
+     * Opt out of the guard that stops a standalone token's value from starting
+     * with "-" and thereby becoming an option of the target command.
+     *
+     * Only set this when the command genuinely takes an operand that may begin
+     * with a dash, and you accept that the user then chooses which option the
+     * target command sees.
+     */
+    public function allowsLeadingDash(bool $allow = true): static
+    {
+        return $this->clone(allowsLeadingDash: $allow);
+    }
+
+    /**
      * Subclasses override this to preserve their own extra properties.
      *
      * @param  array<int, string>|null  $rules
@@ -85,6 +99,7 @@ abstract class Variable
         ?bool $redact = null,
         ?string $help = null,
         ?array $rules = null,
+        ?bool $allowsLeadingDash = null,
     ): static;
 
     protected static function humanise(string $name): string

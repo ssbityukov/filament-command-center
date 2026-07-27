@@ -17,21 +17,22 @@ final class BooleanVariable extends Variable
         bool $redact,
         ?string $help,
         array $rules,
+        bool $allowsLeadingDash,
         public readonly string $trueValue,
     ) {
-        parent::__construct($name, $label, $required, $default, $redact, $help, $rules);
+        parent::__construct($name, $label, $required, $default, $redact, $help, $rules, $allowsLeadingDash);
     }
 
     public static function make(string $name): self
     {
-        return new self($name, self::humanise($name), false, null, false, null, [], '1');
+        return new self($name, self::humanise($name), false, null, false, null, [], false, '1');
     }
 
     public function trueValue(string $trueValue): self
     {
         return new self(
             $this->name, $this->label, $this->required, $this->default,
-            $this->redact, $this->help, $this->rules, $trueValue,
+            $this->redact, $this->help, $this->rules, $this->allowsLeadingDash, $trueValue,
         );
     }
 
@@ -52,6 +53,7 @@ final class BooleanVariable extends Variable
         ?bool $redact = null,
         ?string $help = null,
         ?array $rules = null,
+        ?bool $allowsLeadingDash = null,
     ): static {
         return new self(
             $this->name,
@@ -61,6 +63,7 @@ final class BooleanVariable extends Variable
             $redact ?? $this->redact,
             $help ?? $this->help,
             $rules ?? $this->rules,
+            $allowsLeadingDash ?? $this->allowsLeadingDash,
             $this->trueValue,
         );
     }

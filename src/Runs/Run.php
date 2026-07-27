@@ -11,6 +11,13 @@ use Illuminate\Support\Str;
 final readonly class Run
 {
     /**
+     * Sentinel meaning "set progress to null", distinct from with()'s "null
+     * leaves this field alone". Out of range for a percentage, so it can never
+     * collide with a real value.
+     */
+    private const CLEAR_PROGRESS = PHP_INT_MIN;
+
+    /**
      * @param  array<string, mixed>  $input
      * @param  array<int, string>  $argv
      */
@@ -125,9 +132,17 @@ final readonly class Run
         return $this->terminate(RunState::Failed, $this->output, error: $error);
     }
 
+    /**
+     * Set the progress percentage, or clear it by passing null.
+     *
+     * Every other with() parameter treats null as "leave unchanged", which is
+     * deliberate. Progress is the one field a caller genuinely needs to clear —
+     * a run that stops reporting a percentage falls back to an indeterminate
+     * bar — so it goes through a sentinel instead of widening with().
+     */
     public function withProgress(?int $progress): self
     {
-        return $this->with(progress: $progress);
+        return $this->with(progress: $progress ?? self::CLEAR_PROGRESS);
     }
 
     public function withOutput(string $output): self
@@ -178,7 +193,11 @@ final readonly class Run
             durationMs: $durationMs ?? $this->durationMs,
             exitCode: $exitCode ?? $this->exitCode,
             output: $output ?? $this->output,
-            progress: $progress ?? $this->progress,
+            progress: match (true) {
+                $progress === self::CLEAR_PROGRESS => null,
+                $progress === null => $this->progress,
+                default => $progress,
+            },
             error: $error ?? $this->error,
         );
     }

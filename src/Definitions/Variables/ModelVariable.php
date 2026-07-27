@@ -19,17 +19,18 @@ final class ModelVariable extends Variable
         bool $redact,
         ?string $help,
         array $rules,
+        bool $allowsLeadingDash,
         public readonly string $model,
         public readonly string $titleAttribute,
         public readonly string $valueAttribute,
         public readonly ?Closure $modifyQueryUsing,
     ) {
-        parent::__construct($name, $label, $required, $default, $redact, $help, $rules);
+        parent::__construct($name, $label, $required, $default, $redact, $help, $rules, $allowsLeadingDash);
     }
 
     public static function make(string $name): self
     {
-        return new self($name, self::humanise($name), false, null, false, null, [], '', 'name', 'id', null);
+        return new self($name, self::humanise($name), false, null, false, null, [], false, '', 'name', 'id', null);
     }
 
     /**
@@ -68,7 +69,7 @@ final class ModelVariable extends Variable
     ): self {
         return new self(
             $this->name, $this->label, $this->required, $this->default,
-            $this->redact, $this->help, $this->rules,
+            $this->redact, $this->help, $this->rules, $this->allowsLeadingDash,
             $model ?? $this->model,
             $titleAttribute ?? $this->titleAttribute,
             $valueAttribute ?? $this->valueAttribute,
@@ -83,6 +84,7 @@ final class ModelVariable extends Variable
         ?bool $redact = null,
         ?string $help = null,
         ?array $rules = null,
+        ?bool $allowsLeadingDash = null,
     ): static {
         return new self(
             $this->name,
@@ -92,6 +94,7 @@ final class ModelVariable extends Variable
             $redact ?? $this->redact,
             $help ?? $this->help,
             $rules ?? $this->rules,
+            $allowsLeadingDash ?? $this->allowsLeadingDash,
             $this->model,
             $this->titleAttribute,
             $this->valueAttribute,

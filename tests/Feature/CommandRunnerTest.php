@@ -5,9 +5,35 @@ declare(strict_types=1);
 use Bityukov\CommandCenter\Definitions\Command;
 use Bityukov\CommandCenter\Definitions\Variables\TextVariable;
 use Bityukov\CommandCenter\Exceptions\ShellDisabledException;
+use Bityukov\CommandCenter\Exceptions\UnsafeValueException;
 use Bityukov\CommandCenter\Execution\CommandRunner;
 use Bityukov\CommandCenter\Runs\RunState;
 use Symfony\Component\Process\PhpExecutableFinder;
+
+/**
+ * A path to the PHP binary that contains no whitespace.
+ *
+ * The command position of a run template must be a literal, and ArgvBuilder
+ * splits literal text on whitespace, so a PHP binary installed under a path
+ * with spaces — Herd's "Application Support" location on macOS — cannot be
+ * named directly. A symlink in the temp directory gives it a nameable alias.
+ */
+function whitespaceFreePhpBinary(): string
+{
+    $php = (new PhpExecutableFinder)->find() ?: 'php';
+
+    if (preg_match('/\s/', $php) !== 1) {
+        return $php;
+    }
+
+    $link = sys_get_temp_dir().'/cc-test-php-'.md5($php);
+
+    if (! file_exists($link)) {
+        symlink($php, $link);
+    }
+
+    return $link;
+}
 
 /**
  * A shell definition that runs the fixture script through the PHP binary,
@@ -15,17 +41,11 @@ use Symfony\Component\Process\PhpExecutableFinder;
  */
 function fixtureCommand(string $template): Command
 {
-    $php = (new PhpExecutableFinder)->find() ?: 'php';
     $script = __DIR__.'/../Fixtures/echo-argv.php';
 
-    // The php binary is passed through a token, not concatenated literally, so
-    // that a path containing spaces (e.g. Herd's "Application Support" install
-    // path on macOS) still resolves to exactly one argv element after
-    // ArgvBuilder splits the literal parts of the template on whitespace.
     return Command::make('fixture')
         ->shell()
-        ->variables([TextVariable::make('phpBinary')->default($php)])
-        ->run('{phpBinary} '.$script.' '.$template);
+        ->run(whitespaceFreePhpBinary().' '.$script.' '.$template);
 }
 
 beforeEach(function (): void {
@@ -115,15 +135,58 @@ it('records a failure when the process cannot start', function (): void {
 });
 
 it('marks a run that exceeds its timeout', function (): void {
-    $php = (new PhpExecutableFinder)->find() ?: 'php';
     $definition = Command::make('slow')
         ->shell()
-        ->variables([TextVariable::make('phpBinary')->default($php)])
-        ->run('{phpBinary} -r sleep(5);')
+        ->run(whitespaceFreePhpBinary().' -r sleep(5);')
         ->timeout(1)
         ->toDefinition(60);
 
     $run = app(CommandRunner::class)->run($definition, []);
 
     expect($run->state)->toBe(RunState::TimedOut);
+});
+
+it('delivers each hostile value to a real process as exactly one verbatim argv element', function (string $hostile): void {
+    $definition = fixtureCommand('{payload}')
+        ->variables([TextVariable::make('payload')])
+        ->toDefinition(60);
+
+    $run = app(CommandRunner::class)->run($definition, ['payload' => $hostile]);
+
+    if (str_contains($hostile, "\0")) {
+        // proc_open refuses an argument containing a null byte outright, so this
+        // one value never reaches the process at all. That is failing safe, not
+        // verbatim delivery, and it is the only input in the set that does not
+        // round-trip — asserted here rather than papered over.
+        expect($run->state)->toBe(RunState::Failed)
+            ->and(strtolower((string) $run->error))->toContain('null byte');
+
+        return;
+    }
+
+    // The fixture prints "<index>:<value>" per received argv element. Exactly
+    // one line, with index 0 and byte-identical content, proves the value was
+    // neither split, escaped, expanded, nor interpreted.
+    expect($run->state)->toBe(RunState::Succeeded)
+        ->and(rtrim($run->output, "\r\n"))->toBe('0:'.$hostile);
+})->with('hostile values');
+
+it('delivers a leading dash value verbatim to a real process when embedded', function (string $hostile): void {
+    $definition = fixtureCommand('--path={payload}')
+        ->variables([TextVariable::make('payload')])
+        ->toDefinition(60);
+
+    $run = app(CommandRunner::class)->run($definition, ['payload' => $hostile]);
+
+    expect($run->state)->toBe(RunState::Succeeded)
+        ->and(rtrim($run->output, "\r\n"))->toBe('0:--path='.$hostile);
+})->with('leading dash values');
+
+it('rejects a leading dash value before any process is started', function (): void {
+    $definition = fixtureCommand('{payload}')
+        ->variables([TextVariable::make('payload')])
+        ->toDefinition(60);
+
+    expect(fn () => app(CommandRunner::class)->run($definition, ['payload' => '--version']))
+        ->toThrow(UnsafeValueException::class);
 });

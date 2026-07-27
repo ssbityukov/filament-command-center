@@ -8,7 +8,7 @@ final class TextVariable extends Variable
 {
     public static function make(string $name): self
     {
-        return new self($name, self::humanise($name), false, null, false, null, []);
+        return new self($name, self::humanise($name), false, null, false, null, [], false);
     }
 
     public function fieldType(): string
@@ -23,6 +23,7 @@ final class TextVariable extends Variable
         ?bool $redact = null,
         ?string $help = null,
         ?array $rules = null,
+        ?bool $allowsLeadingDash = null,
     ): static {
         return new self(
             $this->name,
@@ -32,6 +33,7 @@ final class TextVariable extends Variable
             $redact ?? $this->redact,
             $help ?? $this->help,
             $rules ?? $this->rules,
+            $allowsLeadingDash ?? $this->allowsLeadingDash,
         );
     }
 }

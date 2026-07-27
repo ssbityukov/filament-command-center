@@ -40,9 +40,26 @@ final class ProcessFactory
             cwd: config('command-center.working_directory') ?? base_path(),
         );
 
-        $process->setTimeout((float) $definition->timeout);
+        $process->setTimeout((float) $this->timeoutFor($definition));
 
         return $process;
+    }
+
+    /**
+     * A synchronous run cannot outlive the request that started it, so its
+     * timeout is clamped to max_sync_timeout here rather than only being
+     * reported by command-center:check. Definitions can reach execution from
+     * sources the check never ran against; without the clamp, one of those would
+     * leave an orphaned process behind after the web server killed the request.
+     * Queued runs keep their full timeout — a worker has no request to outlive.
+     */
+    private function timeoutFor(CommandDefinition $definition): int
+    {
+        if ($definition->isQueued()) {
+            return $definition->timeout;
+        }
+
+        return min($definition->timeout, (int) config('command-center.max_sync_timeout', 30));
     }
 
     private function phpBinary(): string

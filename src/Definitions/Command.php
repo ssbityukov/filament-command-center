@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bityukov\CommandCenter\Definitions;
 
 use Bityukov\CommandCenter\Definitions\Variables\Variable;
+use Bityukov\CommandCenter\Exceptions\InvalidDefinitionException;
 use Closure;
 
 final class Command
@@ -169,6 +170,8 @@ final class Command
 
     public function toDefinition(int $defaultTimeout): CommandDefinition
     {
+        $this->assertCommandPositionIsLiteral();
+
         return new CommandDefinition(
             key: $this->key,
             label: $this->label,
@@ -187,5 +190,21 @@ final class Command
             confirm: $this->confirm,
             progress: $this->progress,
         );
+    }
+
+    /**
+     * The first element of a run template names what executes — the Artisan
+     * command, or the binary for a shell command. Allowing a token there would
+     * hand the choice of program to whoever fills the form, which is precisely
+     * what the allow-list exists to prevent. Enforced here rather than in a
+     * parser so that every definition source is covered.
+     */
+    private function assertCommandPositionIsLiteral(): void
+    {
+        $elements = preg_split('/\s+/', trim($this->run), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if ($elements !== [] && preg_match('/\{\w+\}/', $elements[0]) === 1) {
+            throw InvalidDefinitionException::tokenInCommandPosition($this->key);
+        }
     }
 }

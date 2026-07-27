@@ -94,3 +94,29 @@ it('round trips through an array', function (): void {
         ->and($restored->output)->toBe('done')
         ->and($restored->startedAt?->toIso8601String())->toBe($run->startedAt?->toIso8601String());
 });
+
+it('sets and clears progress', function (): void {
+    $run = Run::start(runDefinition(), [], [], null);
+
+    expect($run->progress)->toBeNull()
+        ->and($run->withProgress(40)->progress)->toBe(40)
+        ->and($run->withProgress(40)->withProgress(75)->progress)->toBe(75)
+        ->and($run->withProgress(40)->withProgress(null)->progress)->toBeNull()
+        ->and($run->withProgress(0)->progress)->toBe(0);
+});
+
+it('leaves progress alone when another field changes', function (): void {
+    $run = Run::start(runDefinition(), [], [], null)->withProgress(60);
+
+    expect($run->withOutput('more')->progress)->toBe(60)
+        ->and($run->finish(0, 'done')->progress)->toBe(60);
+});
+
+it('replaces the output through withOutput', function (): void {
+    $run = Run::start(runDefinition(), [], [], null);
+
+    expect($run->withOutput('first')->output)->toBe('first')
+        ->and($run->withOutput('first')->withOutput('second')->output)->toBe('second')
+        ->and($run->withOutput('first')->withOutput('')->output)->toBe('')
+        ->and($run->withOutput('first')->state)->toBe(RunState::Running);
+});

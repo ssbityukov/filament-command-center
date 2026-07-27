@@ -7,6 +7,7 @@ namespace Bityukov\CommandCenter\Execution;
 use Bityukov\CommandCenter\Definitions\CommandDefinition;
 use Bityukov\CommandCenter\Exceptions\MissingRequiredValueException;
 use Bityukov\CommandCenter\Exceptions\UnknownTokenException;
+use Bityukov\CommandCenter\Exceptions\UnsafeValueException;
 
 final class ArgvBuilder
 {
@@ -64,6 +65,12 @@ final class ArgvBuilder
             return $element;
         }
 
+        // An element that is nothing but a token becomes a whole argv element of
+        // its own, so the value occupies the position where the target command
+        // looks for an option. An embedded token cannot: whatever literal text
+        // precedes it already fixed the element's meaning.
+        $standalone = count($matches[1]) === 1 && $element === '{'.$matches[1][0].'}';
+
         $replacements = [];
 
         foreach ($matches[1] as $token) {
@@ -81,6 +88,10 @@ final class ArgvBuilder
                 }
 
                 return null;
+            }
+
+            if ($standalone && ! $variable->allowsLeadingDash && str_starts_with($value, '-')) {
+                throw UnsafeValueException::leadingDash($definition->key, $token);
             }
 
             $replacements['{'.$token.'}'] = $value;

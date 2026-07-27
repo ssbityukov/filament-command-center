@@ -45,14 +45,36 @@ it('fails when a shell command exists but shell mode is disabled', function (): 
         ->assertExitCode(1);
 });
 
-it('fails when an ability has no gate', function (): void {
+it('warns rather than fails when an ability is not explicitly defined as a gate', function (): void {
     config()->set('command-center.commands', [
         'x' => ['run' => 'cache:clear', 'ability' => 'undefined-gate'],
     ]);
 
+    // Gate::has() cannot see an ability served by a Gate::before callback, which
+    // is how spatie/laravel-permission and super-admin catch-alls work, so this
+    // may be a correctly configured app. An ability that really is undefined
+    // fails closed at runtime, so a warning is the honest severity.
+    // Laravel matches only one expected substring per written line, so the two
+    // halves of the message are asserted in separate invocations.
     $this->artisan('command-center:check')
         ->expectsOutputToContain('undefined-gate')
-        ->assertExitCode(1);
+        ->assertExitCode(0);
+
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('Gate::before')
+        ->assertExitCode(0);
+});
+
+it('passes for an ability served only by a Gate::before callback', function (): void {
+    Gate::before(fn (): ?bool => true);
+
+    config()->set('command-center.commands', [
+        'x' => ['run' => 'cache:clear', 'ability' => 'run-backups'],
+    ]);
+
+    expect(Gate::has('run-backups'))->toBeFalse();
+
+    $this->artisan('command-center:check')->assertExitCode(0);
 });
 
 it('passes when the ability gate is defined', function (): void {
@@ -107,5 +129,82 @@ it('fails when a model variable names a missing class', function (): void {
 
     $this->artisan('command-center:check')
         ->expectsOutputToContain('App\\Models\\Nope')
+        ->assertExitCode(1);
+});
+
+it('fails when the run template is only whitespace', function (): void {
+    config()->set('command-center.commands', [
+        'blank' => ['run' => '   '],
+    ]);
+
+    // A truly empty string is refused earlier, by ArrayDefinitionParser's
+    // missingRun check. Whitespace passes that and reaches check #3.
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('empty run template')
+        ->assertExitCode(1);
+});
+
+it('fails when a definition cannot even be built from an empty run key', function (): void {
+    config()->set('command-center.commands', [
+        'blank' => ['run' => ''],
+    ]);
+
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('Could not build definitions: Command [blank]')
+        ->assertExitCode(1);
+});
+
+it('fails when a timeout is below one second', function (): void {
+    config()->set('command-center.commands', [
+        'x' => ['run' => 'cache:clear', 'timeout' => 0],
+    ]);
+
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('invalid timeout')
+        ->assertExitCode(1);
+});
+
+it('warns when a select variable has no options', function (): void {
+    config()->set('command-center.commands', [
+        'x' => [
+            'run' => 'cmd {mode}',
+            'variables' => ['mode' => ['type' => 'select']],
+        ],
+    ]);
+
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('no options')
+        ->assertExitCode(0);
+});
+
+it('reports the offending command when a token sits in the command position', function (): void {
+    config()->set('command-center.shell.enabled', true);
+    config()->set('command-center.commands', [
+        'arbitrary' => [
+            'run' => '{bin} hi',
+            'type' => 'shell',
+            'variables' => ['bin' => ['type' => 'text']],
+        ],
+    ]);
+
+    // The definition now throws while being built, so handle()'s try/catch
+    // surfaces it. The exception message names the command key, so CI output
+    // still points at the offending definition.
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('Could not build definitions: Command [arbitrary]')
+        ->assertExitCode(1);
+
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('Make the first element a literal')
+        ->assertExitCode(1);
+});
+
+it('fails on an unknown command type', function (): void {
+    config()->set('command-center.commands', [
+        'x' => ['run' => 'df -h', 'type' => 'Shell'],
+    ]);
+
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('Could not build definitions')
         ->assertExitCode(1);
 });

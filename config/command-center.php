@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use Bityukov\CommandCenter\Sources\ConfigSource;
 
 return [
     /*
@@ -32,6 +33,14 @@ return [
      */
     'shell' => [
         'enabled' => false,
+    ],
+
+    /*
+     | Command sources, resolved from the container in order. Later sources
+     | override earlier ones when two define the same command key.
+     */
+    'sources' => [
+        ConfigSource::class,
     ],
 
     /*

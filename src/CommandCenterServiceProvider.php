@@ -23,5 +23,14 @@ class CommandCenterServiceProvider extends PackageServiceProvider
             commands: config('command-center.commands', []),
             defaultTimeout: (int) config('command-center.default_timeout', 60),
         ));
+
+        $this->app->singleton(CommandRegistry::class, function ($app): CommandRegistry {
+            $sources = array_map(
+                static fn (string $source) => $app->make($source),
+                config('command-center.sources', []),
+            );
+
+            return new CommandRegistry($sources);
+        });
     }
 }

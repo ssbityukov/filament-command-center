@@ -14,7 +14,8 @@ class CommandCenterServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('command-center')
-            ->hasConfigFile('command-center');
+            ->hasConfigFile('command-center')
+            ->hasCommand(Commands\CheckCommand::class);
     }
 
     public function packageRegistered(): void

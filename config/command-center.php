@@ -17,8 +17,13 @@ return [
 
     /*
      | Default timeout in seconds applied to commands that do not set their own.
+     |
+     | This defaults to the same value as max_sync_timeout, because a command
+     | that does not specify a timeout may still run synchronously, and a
+     | synchronous run cannot outlive the HTTP request that started it. Raise it
+     | only for commands you also queue.
      */
-    'default_timeout' => 60,
+    'default_timeout' => 30,
 
     /*
      | Commands running synchronously may not exceed this timeout, because the

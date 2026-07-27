@@ -14,7 +14,7 @@ it('builds definitions from the config array', function (): void {
 
     expect(array_keys($definitions))->toBe(['clear-cache', 'migrate'])
         ->and($definitions['migrate']->group)->toBe('Database')
-        ->and($definitions['clear-cache']->timeout)->toBe(60);
+        ->and($definitions['clear-cache']->timeout)->toBe(30);
 });
 
 it('returns an empty array when no commands are configured', function (): void {

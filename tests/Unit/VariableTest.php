@@ -69,11 +69,13 @@ it('builds a model variable', function (): void {
         ->titleAttribute('email')
         ->valueAttribute('id');
 
+    // resolve() is not asserted here: a model variable now re-queries its own
+    // scope, so resolution needs a real model and is covered in
+    // tests/Feature/ModelVariableTest.php against one.
     expect($variable->model)->toBe('App\\Models\\User')
         ->and($variable->titleAttribute)->toBe('email')
         ->and($variable->valueAttribute)->toBe('id')
-        ->and($variable->fieldType())->toBe('model')
-        ->and($variable->resolve(7))->toBe('7');
+        ->and($variable->fieldType())->toBe('model');
 });
 
 it('defaults to disallowing a leading dash and carries the flag through every builder method', function (): void {

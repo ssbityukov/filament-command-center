@@ -69,6 +69,8 @@ final class ModelVariable extends Variable
      *
      * Both the option list and resolution go through this single query, so the
      * set a user is shown and the set they may submit cannot drift apart.
+     *
+     * @return Builder<Model>
      */
     public function optionsQuery(): Builder
     {

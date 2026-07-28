@@ -369,11 +369,16 @@ class Commands extends Page implements HasTable
     {
         $notification = Notification::make()->title($run->label);
 
-        match (true) {
-            $run->state === RunState::Queued => $notification->info()->body('Queued.'),
-            $run->state === RunState::Rejected => $notification->danger()->body($run->error ?? 'Rejected.'),
-            $run->exitCode === 0 => $notification->success()->body('Finished successfully.'),
-            default => $notification->danger()->body($run->error ?? 'Exit code '.($run->exitCode ?? 'unknown').'.'),
+        // Judged by state, not by exit code: a command can exit zero and still
+        // be a failure when its definition says so, and saying "succeeded"
+        // there would be the one thing an operator must never be told wrongly.
+        match ($run->state) {
+            RunState::Queued => $notification->info()->body('Queued.'),
+            RunState::Succeeded => $notification->success()->body('Finished successfully.'),
+            RunState::Cancelled => $notification->warning()->body($run->error ?? 'Cancelled.'),
+            default => $notification->danger()->body(
+                $run->error ?? 'Exit code '.($run->exitCode ?? 'unknown').'.',
+            ),
         };
 
         $notification->send();

@@ -9,6 +9,7 @@ use Bityukov\CommandCenter\Runs\RunState;
 use Bityukov\CommandCenter\Runs\RunStore;
 use Bityukov\CommandCenter\Tests\Fixtures\TestUser;
 use Filament\Actions\Testing\TestAction;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
 use Symfony\Component\Process\PhpExecutableFinder;
@@ -331,4 +332,18 @@ it('stops polling once the run is finished', function (): void {
     $page->set('lastRunId', app(RunStore::class)->recent()[0]->id);
 
     expect($page->instance()->resultPollInterval())->toBeNull();
+});
+
+it('notifies of a failure when the output declared one despite a zero exit', function (): void {
+    config()->set('command-center.commands.echo-value.fail_if_output_contains', 'hello');
+    app()->forgetScopedInstances();
+
+    livewire(Commands::class)
+        ->callAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']), ['payload' => 'hello'])
+        ->assertNotified(
+            Notification::make()
+                ->danger()
+                ->title('Echo value')
+                ->body('The command exited zero but its output contains "hello", which this command treats as a failure.')
+        );
 });

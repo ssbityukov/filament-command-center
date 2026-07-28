@@ -18,6 +18,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 class History extends Page implements HasTable
@@ -83,7 +84,7 @@ class History extends Page implements HasTable
                         RunState::Cancelled->value => 'warning',
                         default => 'info',
                     }),
-                TextColumn::make('user_id')->label('User'),
+                TextColumn::make('user')->label('User'),
                 TextColumn::make('started_at')->label('Started')->dateTime(),
                 TextColumn::make('duration')->label('Duration'),
                 TextColumn::make('exit_code')->label('Exit'),
@@ -196,11 +197,43 @@ class History extends Page implements HasTable
             'label' => $run->label,
             'command_key' => $run->commandKey,
             'state' => $run->state->value,
-            'user_id' => $run->userId,
+            'user' => $this->userLabel($run->userId),
             'started_at' => $run->startedAt,
             'duration' => $run->durationMs === null ? null : number_format($run->durationMs / 1000, 2).'s',
             'exit_code' => $run->exitCode,
         ];
+    }
+
+    /**
+     * Who ran it, by name rather than by id.
+     *
+     * A run outlives the account that started it, so a missing user falls back
+     * to the stored id: the audit trail should not turn into a blank cell just
+     * because someone was deleted.
+     */
+    private function userLabel(int|string|null $userId): ?string
+    {
+        if ($userId === null) {
+            return null;
+        }
+
+        $provider = Auth::getProvider();
+
+        $user = $provider?->retrieveById($userId);
+
+        if ($user === null) {
+            return (string) $userId;
+        }
+
+        foreach (['name', 'email'] as $attribute) {
+            $value = data_get($user, $attribute);
+
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        return (string) $userId;
     }
 
     /**

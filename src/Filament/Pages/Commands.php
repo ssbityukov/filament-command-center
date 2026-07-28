@@ -387,7 +387,9 @@ class Commands extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->records(fn (array $filters): array => $this->rows($filters))
+            // Filament injects the search term for a custom-data table but does
+            // not apply it: with records() there is no query for it to filter.
+            ->records(fn (array $filters, ?string $search): array => $this->rows($filters, $search))
             ->columns([
                 TextColumn::make('label')
                     ->label('Command')
@@ -428,9 +430,10 @@ class Commands extends Page implements HasTable
      * @param  array<string, array<string, mixed>>  $filters
      * @return array<string, array<string, mixed>>
      */
-    private function rows(array $filters): array
+    private function rows(array $filters, ?string $search = null): array
     {
         $group = $filters['group']['value'] ?? null;
+        $term = trim((string) $search);
 
         $rows = [];
 
@@ -438,6 +441,10 @@ class Commands extends Page implements HasTable
             $name = $definition->group ?? 'Ungrouped';
 
             if (filled($group) && $group !== $name) {
+                continue;
+            }
+
+            if ($term !== '' && ! $this->matches($definition, $term)) {
                 continue;
             }
 
@@ -452,6 +459,47 @@ class Commands extends Page implements HasTable
         }
 
         return $rows;
+    }
+
+    private function matches(CommandDefinition $definition, string $term): bool
+    {
+        $haystack = mb_strtolower(implode(' ', [
+            $definition->key,
+            $definition->label,
+            $definition->run,
+            $definition->help ?? '',
+            $definition->group ?? '',
+        ]));
+
+        return str_contains($haystack, mb_strtolower($term));
+    }
+
+    /**
+     * Copy the output without leaving the page.
+     *
+     * The clipboard write happens in the browser through Filament's own
+     * copyable support rather than through a round trip.
+     */
+    public function copyOutputAction(): Action
+    {
+        return Action::make('copyOutput')
+            ->label('Copy')
+            ->icon('heroicon-m-clipboard')
+            ->link()
+            ->size('xs')
+            ->color('gray')
+            ->visible(function (): bool {
+                $run = $this->lastRun();
+
+                return $run !== null && $run->output !== '';
+            })
+            ->action(function (): void {
+                $run = $this->lastRun();
+
+                $this->dispatch('cc-copy', output: $run === null ? '' : $run->output);
+
+                Notification::make()->title('Output copied')->success()->send();
+            });
     }
 
     public function lastRun(): ?Run

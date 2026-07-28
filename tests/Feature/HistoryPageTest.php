@@ -93,3 +93,25 @@ it('prunes all history when the ability is granted', function (): void {
 
     expect(app(RunStore::class)->recent())->toBe([]);
 });
+
+it('shows who ran a command rather than a bare id', function (): void {
+    $ada = TestUser::create(['name' => 'Ada Lovelace', 'email' => 'ada@test.dev', 'password' => 'x']);
+
+    $definition = Command::make('backup')->label('Backup')->run('route:list')->toDefinition(30);
+    $run = Run::start($definition, [], ['route:list'], userId: $ada->id)->finish(0, 'out');
+
+    app(RunStore::class)->put($run);
+
+    // Only the positive assertion: an id like "1" appears all over the markup,
+    // so asserting its absence would fail regardless of the column.
+    livewire(History::class)->assertSee('Ada Lovelace');
+});
+
+it('falls back to the raw id when the user is gone', function (): void {
+    $definition = Command::make('backup')->label('Backup')->run('route:list')->toDefinition(30);
+    $run = Run::start($definition, [], ['route:list'], userId: 4242)->finish(0, 'out');
+
+    app(RunStore::class)->put($run);
+
+    livewire(History::class)->assertSee('4242');
+});

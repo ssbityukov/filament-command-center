@@ -88,7 +88,7 @@ return [
          | it a recent-activity log rather than an audit trail — a cache flush
          | clears it. 'database' is durable and needs the published migration.
          */
-        'driver' => 'cache',
+        'driver' => env('COMMAND_CENTER_HISTORY_DRIVER', 'cache'),
         'max' => 100,
         'ttl_hours' => 168,
         'store' => null,

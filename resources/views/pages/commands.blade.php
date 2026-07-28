@@ -22,6 +22,8 @@
                 </x-filament::badge>
             </x-slot>
             <x-slot name="headerEnd">
+                {{ $this->copyOutputAction }}
+
                 <x-filament::link :href="$this->runViewUrl($run)" size="xs">
                     Open run
                 </x-filament::link>
@@ -32,4 +34,5 @@
     @endif
 
     {{ $this->table }}
+    <x-command-center::copy-script />
 </x-filament-panels::page>

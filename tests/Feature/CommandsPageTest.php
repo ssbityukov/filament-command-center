@@ -89,3 +89,22 @@ it('denies page access when the plugin authorize callback denies it', function (
 
     expect(Commands::canAccess())->toBeFalse();
 });
+
+it('filters the table by the search term', function (): void {
+    Gate::define('run-backups', fn (): bool => true);
+
+    livewire(Commands::class)
+        ->assertSee('Backup database')
+        ->searchTable('backup')
+        ->assertSee('Backup database')
+        ->assertDontSee('List routes');
+});
+
+it('searches the command line as well as the label', function (): void {
+    Gate::define('run-backups', fn (): bool => true);
+
+    livewire(Commands::class)
+        ->searchTable('route:list')
+        ->assertSee('List routes')
+        ->assertDontSee('Backup database');
+});

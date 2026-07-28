@@ -154,6 +154,16 @@ final readonly class Run
         return $this->terminate(RunState::Cancelled, $output, error: 'Cancelled by user.');
     }
 
+    /**
+     * Move an existing run to rejected — a gate revoked, a lock held, a command
+     * withdrawn. Distinct from Run::rejected(), which mints a new record for an
+     * attempt that never got as far as being queued.
+     */
+    public function reject(string $reason): self
+    {
+        return $this->terminate(RunState::Rejected, $this->output, error: $reason);
+    }
+
     public function fail(string $error): self
     {
         return $this->terminate(RunState::Failed, $this->output, error: $error);

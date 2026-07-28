@@ -8,11 +8,13 @@ use Bityukov\CommandCenter\Definitions\Command;
 use Bityukov\CommandCenter\Sources\CommandRecord;
 use Bityukov\CommandCenter\Sources\DatabaseSource;
 use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -74,6 +76,61 @@ class CommandRecordResource extends Resource
             Textarea::make('definition.help')->label('Help text'),
             TextInput::make('definition.timeout')->label('Timeout (seconds)')->numeric()->minValue(1),
             TextInput::make('definition.ability')->label('Required ability'),
+            Repeater::make('definition.variables')
+                ->label('Variables')
+                ->helperText('One per {token} in the run template.')
+                ->addActionLabel('Add variable')
+                ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
+                ->collapsible()
+                ->default([])
+                ->schema([
+                    TextInput::make('name')
+                        ->required()
+                        ->alphaDash()
+                        ->helperText('The {token} used in the run template.')
+                        // A variable with no token is dead weight, and a token
+                        // with no variable fails at run time. Caught here so the
+                        // author finds out while editing.
+                        ->rule(static fn (Get $get): callable => static function (string $attribute, mixed $value, callable $fail) use ($get): void {
+                            $run = (string) ($get('../../run') ?? '');
+
+                            if ($value !== null && $run !== '' && ! str_contains($run, '{'.$value.'}')) {
+                                $fail("The run template has no {{$value}} token.");
+                            }
+                        }),
+                    TextInput::make('label'),
+                    Select::make('type')
+                        ->required()
+                        ->default('text')
+                        ->live()
+                        ->options([
+                            'text' => 'Text',
+                            'select' => 'Select',
+                            'boolean' => 'Toggle',
+                            'model' => 'Model (searchable)',
+                        ]),
+                    Toggle::make('required'),
+                    TextInput::make('default'),
+                    TextInput::make('help'),
+                    Toggle::make('redact')
+                        ->label('Keep out of history')
+                        ->helperText('Still passed to the process; hidden from the run record.'),
+                    KeyValue::make('options')
+                        ->keyLabel('Value')
+                        ->valueLabel('Label')
+                        ->visible(fn (Get $get): bool => $get('type') === 'select'),
+                    TextInput::make('model')
+                        ->label('Model class')
+                        ->visible(fn (Get $get): bool => $get('type') === 'model'),
+                    TextInput::make('title_attribute')
+                        ->label('Title attribute')
+                        ->default('name')
+                        ->visible(fn (Get $get): bool => $get('type') === 'model'),
+                    TextInput::make('value_attribute')
+                        ->label('Value attribute')
+                        ->default('id')
+                        ->visible(fn (Get $get): bool => $get('type') === 'model'),
+                ]),
             KeyValue::make('definition.flags')
                 ->label('Flags')
                 ->keyLabel('Flag')

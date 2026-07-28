@@ -32,10 +32,29 @@
     </x-filament::section>
 
     <x-filament::section heading="Output">
-        <x-command-center::output :output="$this->record->output" />
+        <div @if ($this->pollInterval()) wire:poll.{{ $this->pollInterval() }}="refresh" @endif>
+            @if ($this->isLive())
+                @if ($this->progress() !== null)
+                    <div class="mb-4">
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                            <div
+                                class="h-2 rounded-full bg-primary-600 transition-all"
+                                style="width: {{ $this->progress() }}%"
+                            ></div>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $this->progress() }}%</p>
+                    </div>
+                @else
+                    <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">Running…</p>
+                @endif
+            @endif
+
+            <x-command-center::output :output="$this->output()" />
+        </div>
     </x-filament::section>
 
-    <div>
+    <div class="flex gap-3">
         {{ $this->rerunAction }}
+        {{ $this->cancelAction }}
     </div>
 </x-filament-panels::page>

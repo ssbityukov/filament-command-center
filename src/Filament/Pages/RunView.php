@@ -6,6 +6,9 @@ namespace Bityukov\CommandCenter\Filament\Pages;
 
 use Bityukov\CommandCenter\Authorization\RunVisibility;
 use Bityukov\CommandCenter\CommandRegistry;
+use Bityukov\CommandCenter\Execution\Cancellation;
+use Bityukov\CommandCenter\Execution\OutputBuffer;
+use Bityukov\CommandCenter\Execution\RunProgress;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
 use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
@@ -41,6 +44,10 @@ class RunView extends Page
      * each request instead of being serialised into the payload.
      */
     public string $runId = '';
+
+    public int $outputOffset = 0;
+
+    public string $liveOutput = '';
 
     /**
      * @param  class-string<Cluster>|null  $cluster
@@ -84,6 +91,82 @@ class RunView extends Page
     public function record(): ?Run
     {
         return app(RunStore::class)->find($this->runId);
+    }
+
+    /**
+     * A run is live until it reaches a terminal state. Polling keys off the
+     * record rather than off the buffer: a command can fall silent for a minute
+     * and still be running.
+     */
+    public function isLive(): bool
+    {
+        $record = $this->record();
+
+        return $record !== null && ! $record->state->isTerminal();
+    }
+
+    public function pollInterval(): ?string
+    {
+        return $this->isLive()
+            ? max((int) config('command-center.output.poll_ms', 750), 100).'ms'
+            : null;
+    }
+
+    /**
+     * Pull only what we do not already have.
+     *
+     * Re-reading the whole log on every tick would re-serialise a growing string
+     * into the Livewire payload several times a second.
+     */
+    public function refresh(): void
+    {
+        $chunk = app(OutputBuffer::class)->read($this->runId, $this->outputOffset);
+
+        if ($chunk !== '') {
+            $this->liveOutput .= $chunk;
+            $this->outputOffset += strlen($chunk);
+        }
+
+        // Drop the computed cache so the next read sees what the worker just
+        // wrote rather than the state this request started with.
+        unset($this->record);
+    }
+
+    public function progress(): ?int
+    {
+        return app(RunProgress::class)->get($this->runId) ?? $this->record()?->progress;
+    }
+
+    /**
+     * What to show in the output pane: the live buffer while the run is in
+     * flight, the recorded output once it has finished.
+     */
+    public function output(): string
+    {
+        if (! $this->isLive()) {
+            $record = $this->record();
+
+            return $record === null ? '' : $record->output;
+        }
+
+        return $this->liveOutput !== ''
+            ? $this->liveOutput
+            : app(OutputBuffer::class)->all($this->runId);
+    }
+
+    public function cancelAction(): Action
+    {
+        return Action::make('cancel')
+            ->label('Cancel')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->visible(fn (): bool => $this->isLive())
+            ->action(function (): void {
+                // Authorization is the same as running the command: mount()
+                // already refused a run this user may not see, and cancelling is
+                // not a wider power than starting it.
+                app(Cancellation::class)->request($this->runId);
+            });
     }
 
     public function getTitle(): string

@@ -115,3 +115,25 @@ it('falls back to the raw id when the user is gone', function (): void {
 
     livewire(History::class)->assertSee('4242');
 });
+
+it('deletes several runs at once when the prune ability is granted', function (): void {
+    Gate::define('command-center:prune-history', fn (): bool => true);
+
+    $one = historyRun('one');
+    $two = historyRun('two');
+    $keep = historyRun('keep');
+
+    livewire(History::class)->callTableBulkAction('delete', [$one->id, $two->id]);
+
+    expect(app(RunStore::class)->find($one->id))->toBeNull()
+        ->and(app(RunStore::class)->find($two->id))->toBeNull()
+        ->and(app(RunStore::class)->find($keep->id))->not->toBeNull();
+});
+
+it('hides the bulk delete when the prune ability is denied', function (): void {
+    Gate::define('command-center:prune-history', fn (): bool => false);
+
+    historyRun('one');
+
+    livewire(History::class)->assertTableBulkActionHidden('delete');
+});

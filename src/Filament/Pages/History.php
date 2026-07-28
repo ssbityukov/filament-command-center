@@ -10,6 +10,7 @@ use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
 use Bityukov\CommandCenter\Runs\RunStore;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Clusters\Cluster;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
@@ -18,6 +19,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
@@ -98,6 +100,22 @@ class History extends Page implements HasTable
                 SelectFilter::make('command_key')->label('Command')->options(fn (): array => $this->commandOptions()),
             ])
             ->recordUrl(fn (array $record): string => RunView::getUrl(['run' => $record['id']]))
+            ->toolbarActions([
+                BulkAction::make('delete')
+                    ->label('Delete selected')
+                    ->icon('heroicon-m-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => $this->canPrune())
+                    ->action(function (Collection $records): void {
+                        abort_unless($this->canPrune(), 403);
+
+                        foreach ($records as $record) {
+                            app(RunStore::class)->forget((string) $record['id']);
+                        }
+                    })
+                    ->deselectRecordsAfterCompletion(),
+            ])
             ->recordActions([
                 Action::make('delete')
                     ->icon('heroicon-m-trash')

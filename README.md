@@ -11,6 +11,14 @@ input never becomes a structural part of a command line, and each command can re
 - Run history with no migration required, or a durable database driver
 - `command-center:check` validates every definition in CI
 
+## Credits
+
+This package is a Filament port of [farsidev/nova-command-center](https://github.com/farsidev/nova-command-center),
+which worked out what a command runner in an admin panel should feel like. The
+catalogue, the run modal, the live output and the history all follow the shape
+it established; the argv model, the source layer and the checks are this
+package's own. Thanks to its authors.
+
 ## Requirements
 
 PHP 8.3+, Laravel 11/12/13, Filament 5.
@@ -189,6 +197,16 @@ Read these before adopting. They are properties of the design, not bugs.
 - **A command that fails to start** does not always surface as a thrown exception; Symfony may fall
   back to a shell wrapper, so the run is recorded as failed with exit code 126 or 127 and the
   diagnostic in its output rather than in the error field.
+
+## Deep dives
+
+| Guide | What it covers |
+|---|---|
+| [Configuration](docs/configuration.md) | Every config key, and what breaks if it is wrong |
+| [Command sources](docs/command-sources.md) | Config, database and custom sources |
+| [Security model](docs/security.md) | The threat model and every control |
+| [Authorization](docs/authorization.md) | Gates, abilities and who may read a run |
+| [Queued execution and progress](docs/queued-execution.md) | Queueing, live output, progress, cancel |
 
 ## Testing
 

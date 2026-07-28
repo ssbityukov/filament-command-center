@@ -6,6 +6,7 @@ namespace Bityukov\CommandCenter\Filament;
 
 use Bityukov\CommandCenter\Filament\Clusters\CommandCenterCluster;
 use Bityukov\CommandCenter\Filament\Pages\Commands;
+use Bityukov\CommandCenter\Filament\Pages\History;
 use Bityukov\CommandCenter\Filament\Pages\RunView;
 use Closure;
 use Filament\Contracts\Plugin;
@@ -100,10 +101,12 @@ final class CommandCenterPlugin implements Plugin
         $cluster = $this->cluster ? CommandCenterCluster::class : null;
 
         Commands::cluster($cluster);
+        History::cluster($cluster);
         RunView::cluster($cluster);
 
         if ($cluster === null) {
             Commands::navigationLabel('Commands');
+            History::navigationLabel('Run history');
 
             if ($this->navigationGroup !== null) {
                 Commands::navigationGroup($this->navigationGroup);
@@ -114,7 +117,7 @@ final class CommandCenterPlugin implements Plugin
             }
         }
 
-        $pages = [Commands::class, RunView::class];
+        $pages = [Commands::class, History::class, RunView::class];
 
         if ($cluster !== null) {
             $pages[] = CommandCenterCluster::class;

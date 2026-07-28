@@ -63,6 +63,13 @@ return [
     ],
 
     /*
+     | Gate abilities the package checks for its own destructive actions.
+     */
+    'abilities' => [
+        'prune_history' => 'command-center:prune-history',
+    ],
+
+    /*
      | Command definitions, keyed by a unique slug.
      */
     'commands' => [],

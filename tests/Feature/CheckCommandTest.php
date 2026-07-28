@@ -115,7 +115,7 @@ it('warns when a queued command runs on the sync queue connection', function ():
     ]);
 
     $this->artisan('command-center:check')
-        ->expectsOutputToContain('sync')
+        ->expectsOutputToContain('run inline inside the request')
         ->assertExitCode(0);
 });
 
@@ -207,4 +207,26 @@ it('fails on an unknown command type', function (): void {
     $this->artisan('command-center:check')
         ->expectsOutputToContain('Could not build definitions')
         ->assertExitCode(1);
+});
+
+it('warns when a queued command is configured against the sync queue connection', function (): void {
+    config()->set('queue.default', 'sync');
+    config()->set('command-center.commands', [
+        'backup' => ['run' => 'backup:run', 'queue' => true],
+    ]);
+
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('run inline inside the request')
+        ->assertExitCode(0);
+});
+
+it('does not warn about the sync queue when no command is queued', function (): void {
+    config()->set('queue.default', 'sync');
+    config()->set('command-center.commands', [
+        'backup' => ['run' => 'backup:run'],
+    ]);
+
+    $this->artisan('command-center:check')
+        ->doesntExpectOutputToContain('run inline inside the request')
+        ->assertExitCode(0);
 });

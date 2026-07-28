@@ -121,6 +121,15 @@ final class CheckCommand extends Command
                 .'not, the command is denied to everyone.';
         }
 
+        // A "queued" command on the sync connection runs inline inside the
+        // request that dispatched it, which is the thing queueing exists to
+        // avoid — and it will hit the web server's timeout, not the command's.
+        // A warning, not an error: sync is a legitimate local setting.
+        if ($definition->isQueued() && config('queue.default') === 'sync') {
+            $this->warnings[] = "[{$key}] is queued, but the default queue connection is \"sync\", so it "
+                .'will run inline inside the request instead of on a worker.';
+        }
+
         if ($definition->timeout < 1) {
             $this->errors[] = "[{$key}] has an invalid timeout of {$definition->timeout}.";
         }

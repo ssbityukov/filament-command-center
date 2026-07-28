@@ -95,6 +95,37 @@ it('passes a leading dash value through when the variable opts in', function (st
     expect($argv)->toBe(['cmd', $hostile]);
 })->with('leading dash values');
 
+it('rejects a leading dash value in a token that opens an element', function (): void {
+    $definition = Command::make('env-dump')
+        ->run('env {which}=1')
+        ->variables([TextVariable::make('which')])
+        ->toDefinition(defaultTimeout: 60);
+
+    expect(fn () => (new ArgvBuilder)->build($definition, ['which' => '--env']))
+        ->toThrow(UnsafeValueException::class);
+});
+
+it('rejects a leading dash value in the first of two adjacent tokens', function (): void {
+    $definition = Command::make('env-dump')
+        ->run('env {prefix}{name}')
+        ->variables([TextVariable::make('prefix'), TextVariable::make('name')])
+        ->toDefinition(defaultTimeout: 60);
+
+    expect(fn () => (new ArgvBuilder)->build($definition, ['prefix' => '--force', 'name' => 'x']))
+        ->toThrow(UnsafeValueException::class);
+});
+
+it('allows a leading dash value in a token that does not open an element', function (): void {
+    $definition = Command::make('x')
+        ->run('cmd {prefix}{name}')
+        ->variables([TextVariable::make('prefix'), TextVariable::make('name')])
+        ->toDefinition(defaultTimeout: 60);
+
+    $argv = (new ArgvBuilder)->build($definition, ['prefix' => 'safe', 'name' => '--force']);
+
+    expect($argv)->toBe(['cmd', 'safe--force']);
+});
+
 it('rejects a leading dash coming from a variable default', function (): void {
     $definition = Command::make('x')
         ->run('cmd {v}')

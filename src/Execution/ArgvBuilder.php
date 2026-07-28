@@ -59,21 +59,23 @@ final class ArgvBuilder
      */
     private function resolveElement(CommandDefinition $definition, string $element, array $input): ?string
     {
-        preg_match_all('/\{(\w+)\}/', $element, $matches);
+        preg_match_all('/\{(\w+)\}/', $element, $matches, PREG_OFFSET_CAPTURE);
 
-        if ($matches[1] === []) {
+        $tokens = array_column($matches[1], 0);
+
+        if ($tokens === []) {
             return $element;
         }
 
-        // An element that is nothing but a token becomes a whole argv element of
-        // its own, so the value occupies the position where the target command
-        // looks for an option. An embedded token cannot: whatever literal text
-        // precedes it already fixed the element's meaning.
-        $standalone = count($matches[1]) === 1 && $element === '{'.$matches[1][0].'}';
+        // A token at the very start of an element decides that element's first
+        // character, so a value beginning with "-" makes the whole element an
+        // option of the target command. A token with literal text before it
+        // cannot: that text already fixed the element's meaning.
+        $leadingToken = $matches[0][0][1] === 0 ? $tokens[0] : null;
 
         $replacements = [];
 
-        foreach ($matches[1] as $token) {
+        foreach ($tokens as $token) {
             $variable = $definition->variable($token);
 
             if ($variable === null) {
@@ -90,7 +92,7 @@ final class ArgvBuilder
                 return null;
             }
 
-            if ($standalone && ! $variable->allowsLeadingDash && str_starts_with($value, '-')) {
+            if ($token === $leadingToken && ! $variable->allowsLeadingDash && str_starts_with($value, '-')) {
                 throw UnsafeValueException::leadingDash($definition->key, $token);
             }
 

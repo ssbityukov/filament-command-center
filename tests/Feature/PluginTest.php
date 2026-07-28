@@ -6,6 +6,7 @@ use Bityukov\CommandCenter\Filament\Clusters\CommandCenterCluster;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
 use Bityukov\CommandCenter\Filament\Pages\Commands;
 use Bityukov\CommandCenter\Filament\Pages\History;
+use Bityukov\CommandCenter\Filament\Resources\CommandRecordResource;
 use Bityukov\CommandCenter\Tests\Fixtures\TestUser;
 use Filament\Facades\Filament;
 use Filament\Pages\Dashboard;
@@ -97,4 +98,11 @@ it('does not drag unrelated pages into its sidebar group', function (): void {
 
     expect(Dashboard::getNavigationGroup())->toBeNull()
         ->and(Dashboard::getNavigationLabel())->not->toBe('Commands');
+});
+
+it('keeps the command editor in the same sidebar group as the pages', function (): void {
+    CommandCenterPlugin::make()->register(Filament::getPanel('test'));
+
+    expect(CommandRecordResource::getNavigationGroup())
+        ->toBe(Commands::getNavigationGroup());
 });

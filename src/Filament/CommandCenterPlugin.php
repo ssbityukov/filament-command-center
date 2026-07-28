@@ -143,9 +143,11 @@ final class CommandCenterPlugin implements Plugin
             // previous registration put there.
             Commands::navigationGroup($group);
             History::navigationGroup($group);
+            CommandRecordResource::navigationGroup($group);
 
             Commands::navigationSort($this->navigationSort ?? 1);
             History::navigationSort(($this->navigationSort ?? 1) + 1);
+            CommandRecordResource::navigationSort(($this->navigationSort ?? 1) + 2);
         }
 
         $pages = [Commands::class, History::class, RunView::class];

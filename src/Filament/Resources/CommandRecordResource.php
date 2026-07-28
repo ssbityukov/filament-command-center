@@ -26,7 +26,19 @@ class CommandRecordResource extends Resource
 {
     protected static ?string $model = CommandRecord::class;
 
-    protected static ?string $slug = 'command-definitions';
+    protected static ?string $slug = 'command-center/definitions';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-pencil-square';
+
+    protected static ?string $navigationLabel = 'Manage commands';
+
+    /**
+     * Redeclared so assigning the group does not write to Filament's base
+     * Resource, which would move every resource in the panel into this group.
+     */
+    protected static string|\UnitEnum|null $navigationGroup = null;
+
+    protected static ?int $navigationSort = null;
 
     protected static ?string $modelLabel = 'command definition';
 
@@ -56,6 +68,7 @@ class CommandRecordResource extends Resource
             TextInput::make('definition.label')->label('Label'),
             TextInput::make('definition.run')
                 ->label('Run template')
+                ->columnSpanFull()
                 ->required()
                 ->helperText('The first element must be a literal, e.g. backup:run {database}.')
                 // Validated with the real builder, so the form cannot accept a

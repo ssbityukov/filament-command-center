@@ -23,10 +23,20 @@ it('registers the commands page with the panel', function (): void {
     expect(Filament::getPanel('test')->getPages())->toContain(Commands::class);
 });
 
-it('keeps pages flat under a sidebar group by default', function (): void {
+it('puts its pages in the panel navigation without inventing a group', function (): void {
     expect(Commands::getCluster())->toBeNull()
-        ->and(Commands::getNavigationGroup())->toBe('Command Center')
-        ->and(History::getNavigationGroup())->toBe('Command Center');
+        ->and(Commands::getNavigationGroup())->toBeNull()
+        ->and(History::getNavigationGroup())->toBeNull();
+});
+
+it('gives each page an icon so it looks like the rest of the sidebar', function (): void {
+    expect(Commands::getNavigationIcon())->not->toBeNull()
+        ->and(History::getNavigationIcon())->not->toBeNull();
+});
+
+it('keeps its slugs under a prefix so they cannot collide with app routes', function (): void {
+    expect(Commands::getSlug())->toStartWith('command-center/')
+        ->and(History::getSlug())->toStartWith('command-center/');
 });
 
 it('puts pages in the cluster when clustering is asked for', function (): void {
@@ -35,7 +45,7 @@ it('puts pages in the cluster when clustering is asked for', function (): void {
     expect(Commands::getCluster())->toBe(CommandCenterCluster::class);
 });
 
-it('renames the sidebar group', function (): void {
+it('groups the pages when an app asks for it', function (): void {
     CommandCenterPlugin::make()->group('Operations')->register(Filament::getPanel('test'));
 
     expect(Commands::getNavigationGroup())->toBe('Operations');

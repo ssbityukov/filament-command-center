@@ -61,8 +61,8 @@ it('aborts with 404 for an unknown run id', function (): void {
     (new RunView)->mount('no-such-run');
 })->throws(NotFoundHttpException::class);
 
-it('routes runs under a run id parameter', function (): void {
-    expect(RunView::getRoutePath(Filament::getPanel('test')))->toBe('/runs/{run}');
+it('routes runs under a prefixed path with a run id parameter', function (): void {
+    expect(RunView::getRoutePath(Filament::getPanel('test')))->toBe('/command-center/runs/{run}');
 });
 
 it('builds a url for a specific run', function (): void {

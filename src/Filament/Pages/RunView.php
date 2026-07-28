@@ -79,7 +79,7 @@ class RunView extends Page
 
     public static function getRoutePath(Panel $panel): string
     {
-        return '/runs/{run}';
+        return '/command-center/runs/{run}';
     }
 
     /**

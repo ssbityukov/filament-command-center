@@ -29,9 +29,11 @@ class Commands extends Page
 {
     use HasCommandCenterSubNavigation;
 
-    protected static ?string $slug = 'commands';
+    protected static ?string $slug = 'command-center/commands';
 
     protected static ?string $title = 'Commands';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-command-line';
 
     /**
      * Redeclared deliberately. A subclass shares its parent's static property

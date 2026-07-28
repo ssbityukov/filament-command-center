@@ -26,9 +26,11 @@ class History extends Page implements HasTable
     use HasCommandCenterSubNavigation;
     use InteractsWithTable;
 
-    protected static ?string $slug = 'history';
+    protected static ?string $slug = 'command-center/history';
 
     protected static ?string $title = 'Run history';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clock';
 
     protected static bool $isDiscovered = false;
 

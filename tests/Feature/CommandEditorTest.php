@@ -151,3 +151,9 @@ it('rejects a variable whose name is not a token in the run template', function 
         ->call('create')
         ->assertHasFormErrors();
 });
+
+it('shows no breadcrumbs, like the plugin\'s other pages', function (): void {
+    Gate::define('command-center:manage-commands', fn (): bool => true);
+
+    expect(livewire(CreateCommandRecord::class)->instance()->getBreadcrumbs())->toBe([]);
+});

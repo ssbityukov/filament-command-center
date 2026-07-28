@@ -16,6 +16,16 @@ class EditCommandRecord extends EditRecord
     protected static string $resource = CommandRecordResource::class;
 
     /**
+     * No breadcrumbs, to match the plugin's other pages.
+     *
+     * @return array<string, string>
+     */
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */

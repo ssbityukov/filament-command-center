@@ -13,6 +13,16 @@ class ListCommandRecords extends ListRecords
     protected static string $resource = CommandRecordResource::class;
 
     /**
+     * No breadcrumbs, to match the plugin's other pages.
+     *
+     * @return array<string, string>
+     */
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    /**
      * @return array<int, mixed>
      */
     protected function getHeaderActions(): array

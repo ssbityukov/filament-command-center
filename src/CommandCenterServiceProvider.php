@@ -17,7 +17,8 @@ class CommandCenterServiceProvider extends PackageServiceProvider
             ->hasConfigFile('command-center')
             ->hasViews('command-center')
             ->hasMigration('create_command_center_runs_table')
-            ->hasCommand(Commands\CheckCommand::class);
+            ->hasCommand(Commands\CheckCommand::class)
+            ->hasCommand(Commands\PruneCommand::class);
     }
 
     public function packageRegistered(): void

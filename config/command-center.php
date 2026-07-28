@@ -62,6 +62,14 @@ return [
     ],
 
     /*
+     | An optional limit applied to every command, on top of any per-command
+     | rate limit. Null disables it.
+     */
+    'rate_limit' => [
+        'global' => null,
+    ],
+
+    /*
      | Run history.
      |
      | The cache driver needs no migration, which keeps installation to a single

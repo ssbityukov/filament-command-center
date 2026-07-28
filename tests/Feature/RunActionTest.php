@@ -312,3 +312,23 @@ it('paints the button blue for a queued command', function (): void {
 
     expect($action->arguments(['commandKey' => 'queued'])->getColor())->toBe('info');
 });
+
+it('keeps polling the result panel while a queued run is unfinished', function (): void {
+    Queue::fake();
+
+    $page = livewire(Commands::class)
+        ->callAction(TestAction::make('run')->arguments(['commandKey' => 'queued']));
+
+    expect($page->instance()->resultPollInterval())->not->toBeNull();
+});
+
+it('stops polling once the run is finished', function (): void {
+    livewire(Commands::class)
+        ->callAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']), ['payload' => 'hi'])
+        ->assertSet('lastRunId', fn (?string $id): bool => $id !== null);
+
+    $page = livewire(Commands::class);
+    $page->set('lastRunId', app(RunStore::class)->recent()[0]->id);
+
+    expect($page->instance()->resultPollInterval())->toBeNull();
+});

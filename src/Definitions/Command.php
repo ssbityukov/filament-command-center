@@ -43,6 +43,9 @@ final class Command
 
     private bool $progress = false;
 
+    /** @var array<int, string> */
+    private array $failOnOutput = [];
+
     private function __construct(private readonly string $key)
     {
         $this->label = ucfirst(str_replace(['_', '-'], ' ', $key));
@@ -161,6 +164,16 @@ final class Command
         return $this;
     }
 
+    /**
+     * @param  string|array<int, string>  $needles
+     */
+    public function failIfOutputContains(string|array $needles): self
+    {
+        $this->failOnOutput = is_array($needles) ? array_values($needles) : [$needles];
+
+        return $this;
+    }
+
     public function progress(bool $progress = true): self
     {
         $this->progress = $progress;
@@ -189,6 +202,7 @@ final class Command
             rateLimit: $this->rateLimit,
             confirm: $this->confirm,
             progress: $this->progress,
+            failOnOutput: $this->failOnOutput,
         );
     }
 

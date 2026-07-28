@@ -31,7 +31,37 @@ final readonly class CommandDefinition
         public ?array $rateLimit,
         public bool|string $confirm,
         public bool $progress,
+        /**
+         * Phrases that mean failure even when the process exits zero.
+         *
+         * Some commands report a problem in words and still return 0 —
+         * storage:link does exactly that when the link exists. Opt in per
+         * command rather than grepping every output for "error", which would
+         * fail runs whose output merely mentions the word.
+         *
+         * @var array<int, string>
+         */
+        public array $failOnOutput = [],
     ) {}
+
+    public function failsOnOutput(string $output): bool
+    {
+        return $this->reportedFailureIn($output) !== null;
+    }
+
+    /**
+     * The declared phrase found in the output, or null.
+     */
+    public function reportedFailureIn(string $output): ?string
+    {
+        foreach ($this->failOnOutput as $needle) {
+            if ($needle !== '' && str_contains($output, $needle)) {
+                return $needle;
+            }
+        }
+
+        return null;
+    }
 
     public function variable(string $name): ?Variable
     {

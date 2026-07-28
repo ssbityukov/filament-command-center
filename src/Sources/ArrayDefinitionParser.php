@@ -53,6 +53,12 @@ final class ArrayDefinitionParser
             ->confirm($this->boolOrString($key, 'confirm', $config['confirm'] ?? false))
             ->progress((bool) ($config['progress'] ?? false));
 
+        if (isset($config['fail_if_output_contains'])) {
+            $needles = $config['fail_if_output_contains'];
+
+            $command->failIfOutputContains(is_array($needles) ? $needles : (string) $needles);
+        }
+
         if (isset($config['timeout'])) {
             $command->timeout((int) $config['timeout']);
         }

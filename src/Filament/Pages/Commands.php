@@ -529,6 +529,28 @@ class Commands extends Page implements HasTable
         return $this->lastRunId === null ? null : app(RunStore::class)->find($this->lastRunId);
     }
 
+    /**
+     * A queued run is recorded before a worker touches it, so the result panel
+     * has to keep looking until the run reaches a terminal state — otherwise it
+     * sits on "Queued" and "No output" forever.
+     */
+    public function resultPollInterval(): ?string
+    {
+        $run = $this->lastRun();
+
+        if ($run === null || $run->state->isTerminal()) {
+            return null;
+        }
+
+        return max((int) config('command-center.output.poll_ms', 750), 100).'ms';
+    }
+
+    public function refreshResult(): void
+    {
+        // Nothing to do: the poll itself re-renders, and lastRun() re-reads the
+        // store. The method exists so wire:poll has something to call.
+    }
+
     public function dismissLastRun(): void
     {
         $this->lastRunId = null;

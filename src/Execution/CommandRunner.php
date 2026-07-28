@@ -6,6 +6,7 @@ namespace Bityukov\CommandCenter\Execution;
 
 use Bityukov\CommandCenter\Definitions\CommandDefinition;
 use Bityukov\CommandCenter\Runs\Run;
+use Bityukov\CommandCenter\Runs\RunState;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Throwable;
 
@@ -87,7 +88,21 @@ final class CommandRunner
             return $run->cancel($buffer);
         }
 
-        return $run->finish($process->getExitCode() ?? 1, $buffer);
+        $run = $run->finish($process->getExitCode() ?? 1, $buffer);
+
+        // A command that reports a problem in words while exiting zero is
+        // recorded as failed, keeping the real exit code so the record does not
+        // claim the process said something it did not.
+        $reported = $definition->reportedFailureIn($buffer);
+
+        if ($run->state === RunState::Succeeded && $reported !== null) {
+            return $run->fail(sprintf(
+                'The command exited zero but its output contains "%s", which this command treats as a failure.',
+                $reported,
+            ));
+        }
+
+        return $run;
     }
 
     /**

@@ -2,6 +2,7 @@
     {{-- Result of the last run, in place: running a command should not send
          anyone to another page to find out what happened. --}}
     @if ($run = $this->lastRun())
+        <div @if ($this->resultPollInterval()) wire:poll.{{ $this->resultPollInterval() }}="refreshResult" @endif>
         <x-filament::section>
             <x-slot name="heading">
                 {{ $run->label }}
@@ -31,6 +32,7 @@
 
             <x-command-center::output :output="$run->output" />
         </x-filament::section>
+        </div>
     @endif
 
     {{ $this->table }}

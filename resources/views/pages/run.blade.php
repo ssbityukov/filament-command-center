@@ -1,23 +1,20 @@
 <x-filament-panels::page>
     <x-filament::section>
         <x-slot name="heading">
-            <x-filament::badge :color="$this->stateColor()">
+            {{ $this->record->label }}
+
+            <x-filament::badge tag="span" :color="$this->stateColor()">
                 {{ $this->record->state->label() }}
             </x-filament::badge>
         </x-slot>
 
+        {{-- One line, same shape as the result panel on the catalogue --}}
         <x-slot name="description">
-            @if ($this->record->exitCode !== null)
-                Exit code {{ $this->record->exitCode }}.
-            @endif
-
-            @if ($this->record->durationMs !== null)
-                Took {{ number_format($this->record->durationMs / 1000, 2) }}s.
-            @endif
-
-            @if ($this->record->startedAt)
-                Started {{ $this->record->startedAt->diffForHumans() }}.
-            @endif
+            {{ collect([
+                $this->record->exitCode === null ? null : 'Exit code '.$this->record->exitCode,
+                $this->record->durationMs === null ? null : number_format($this->record->durationMs / 1000, 2).'s',
+                $this->record->startedAt?->diffForHumans(),
+            ])->filter()->implode(' · ') }}
         </x-slot>
 
         @if ($this->record->error)

@@ -265,3 +265,29 @@ function jobless(): string
 
     return phpBinaryWithoutWhitespace().' '.$path;
 }
+
+it('shows the result in place instead of redirecting', function (): void {
+    $component = livewire(Commands::class)
+        ->callAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']), [
+            'payload' => 'hello',
+        ])
+        ->assertNoRedirect();
+
+    $run = app(RunStore::class)->recent()[0];
+
+    $component->assertSet('lastRunId', $run->id)
+        ->assertSee('hello');
+});
+
+it('dismisses the result panel', function (): void {
+    livewire(Commands::class)
+        ->callAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']), ['payload' => 'hello'])
+        ->call('dismissLastRun')
+        ->assertSet('lastRunId', null);
+});
+
+it('filters the catalogue by category', function (): void {
+    $page = livewire(Commands::class)->call('selectGroup', 'Nope');
+
+    expect($page->instance()->groups())->toBe([]);
+});

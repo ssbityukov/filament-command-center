@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bityukov\CommandCenter\Filament\Pages;
 
 use Bityukov\CommandCenter\Authorization\Authorizer;
+use Bityukov\CommandCenter\Authorization\RunVisibility;
 use Bityukov\CommandCenter\CommandRegistry;
 use Bityukov\CommandCenter\Definitions\CommandDefinition;
 use Bityukov\CommandCenter\Execution\ArgvBuilder;
@@ -13,6 +14,7 @@ use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
 use Bityukov\CommandCenter\Filament\SchemaBuilder;
 use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
+use Bityukov\CommandCenter\Runs\RunStore;
 use Filament\Actions\Action;
 use Filament\Clusters\Cluster;
 use Filament\Facades\Filament;
@@ -58,6 +60,16 @@ class Commands extends Page
 
     public string $search = '';
 
+    public ?string $group = null;
+
+    /**
+     * The run whose result is shown at the top of the page.
+     *
+     * Kept here rather than redirecting: an operator who clears a cache wants
+     * the outcome where they are, not a new page to navigate back from.
+     */
+    public ?string $lastRunId = null;
+
     /**
      * The plugin decides whether pages live in the cluster, and it must do so
      * before Filament reads getCluster() during page registration. A static
@@ -93,7 +105,13 @@ class Commands extends Page
                 continue;
             }
 
-            $groups[$definition->group ?? 'Ungrouped'][] = $definition;
+            $name = $definition->group ?? 'Ungrouped';
+
+            if ($this->group !== null && $this->group !== $name) {
+                continue;
+            }
+
+            $groups[$name][] = $definition;
         }
 
         ksort($groups);
@@ -264,9 +282,9 @@ class Commands extends Page
             return;
         }
 
-        $this->notifyOf($run);
+        $this->lastRunId = $run->id;
 
-        $this->redirect(RunView::getUrl(['run' => $run->id]));
+        $this->notifyOf($run);
     }
 
     /**
@@ -332,6 +350,53 @@ class Commands extends Page
             ->body($reason)
             ->danger()
             ->send();
+    }
+
+    public function lastRun(): ?Run
+    {
+        return $this->lastRunId === null ? null : app(RunStore::class)->find($this->lastRunId);
+    }
+
+    public function dismissLastRun(): void
+    {
+        $this->lastRunId = null;
+    }
+
+    /**
+     * Group names with their counts, for the category rail.
+     *
+     * @return array<string, int>
+     */
+    public function categories(): array
+    {
+        $counts = [];
+
+        foreach (app(Authorizer::class)->visibleTo() as $definition) {
+            $name = $definition->group ?? 'Ungrouped';
+            $counts[$name] = ($counts[$name] ?? 0) + 1;
+        }
+
+        ksort($counts);
+
+        return $counts;
+    }
+
+    public function selectGroup(?string $group): void
+    {
+        $this->group = $group;
+    }
+
+    /**
+     * @return array<int, Run>
+     */
+    public function recentRuns(int $limit = 5): array
+    {
+        return app(RunVisibility::class)->filter(app(RunStore::class)->recent($limit * 3), null);
+    }
+
+    public function runViewUrl(Run $run): string
+    {
+        return RunView::getUrl(['run' => $run->id]);
     }
 
     private function matchesSearch(CommandDefinition $definition): bool

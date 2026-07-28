@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 use Bityukov\CommandCenter\Definitions\Command;
 use Bityukov\CommandCenter\Definitions\CommandDefinition;
+use Bityukov\CommandCenter\Exceptions\LockUnavailableException;
 use Bityukov\CommandCenter\Execution\ConcurrencyLock;
+use Illuminate\Cache\Repository;
+use Illuminate\Contracts\Cache\Factory;
+use Illuminate\Contracts\Cache\Store;
 
 function limited(?int $concurrency): CommandDefinition
 {
@@ -64,4 +68,78 @@ it('ignores a release with the wrong owner token', function (): void {
     $lock->release(limited(1), '1:not-the-owner');
 
     expect($lock->acquire(limited(1)))->toBeNull();
+});
+
+it('fails closed when the cache store cannot take a lock', function (): void {
+    // A store without LockProvider: treating that as "no limit" would turn the
+    // guard into decoration on exactly the drivers that lack it.
+    $store = new class implements Store
+    {
+        public function get($key) {}
+
+        public function many(array $keys)
+        {
+            return [];
+        }
+
+        public function put($key, $value, $seconds)
+        {
+            return true;
+        }
+
+        public function putMany(array $values, $seconds)
+        {
+            return true;
+        }
+
+        public function increment($key, $value = 1)
+        {
+            return 1;
+        }
+
+        public function decrement($key, $value = 1)
+        {
+            return 1;
+        }
+
+        public function forever($key, $value)
+        {
+            return true;
+        }
+
+        public function forget($key)
+        {
+            return true;
+        }
+
+        public function flush()
+        {
+            return true;
+        }
+
+        public function getPrefix()
+        {
+            return '';
+        }
+
+        public function touch($key, $seconds)
+        {
+            return true;
+        }
+    };
+
+    $repository = new Repository($store);
+
+    $factory = new class($repository) implements Factory
+    {
+        public function __construct(private $repository) {}
+
+        public function store($name = null)
+        {
+            return $this->repository;
+        }
+    };
+
+    expect(fn () => (new ConcurrencyLock($factory))->acquire(limited(1)))
+        ->toThrow(LockUnavailableException::class, 'atomic locks');
 });

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Bityukov\CommandCenter\Execution;
 
 use Bityukov\CommandCenter\Definitions\CommandDefinition;
+use Bityukov\CommandCenter\Exceptions\LockUnavailableException;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Support\Str;
 
 /**
@@ -51,10 +53,21 @@ final class ConcurrencyLock
         $this->lock($definition, (int) $slot, $token)->release();
     }
 
+    /**
+     * Fails closed on a cache driver without atomic locks.
+     *
+     * Quietly treating "cannot lock" as "no limit" would turn a concurrency
+     * guard into decoration on exactly the drivers where it is missing.
+     * command-center:check reports this before anything runs.
+     */
     private function lock(CommandDefinition $definition, int $slot, string $token): Lock
     {
-        return $this->cache
-            ->store(config('command-center.history.store'))
-            ->lock('cc:conc:'.$definition->key.':'.$slot, $definition->timeout + 60, $token);
+        $store = $this->cache->store(config('command-center.history.store'))->getStore();
+
+        if (! $store instanceof LockProvider) {
+            throw LockUnavailableException::for($definition->key, $store::class);
+        }
+
+        return $store->lock('cc:conc:'.$definition->key.':'.$slot, $definition->timeout + 60, $token);
     }
 }

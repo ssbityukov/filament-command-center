@@ -31,44 +31,29 @@
                 @endif
 
                 @if ($run->output !== '')
-                    {{-- navigator.clipboard exists only in a secure context, so
-                         a panel served over plain http has none. The textarea
-                         fallback is what actually copies there. --}}
+                    {{-- The text rides in a data attribute rather than inside
+                         x-data: Blade escapes it correctly there, and
+                         navigator.clipboard is undefined over plain http, so
+                         the textarea path is what actually copies. --}}
                     <x-filament::button
                         size="xs"
                         color="gray"
                         icon="heroicon-m-clipboard"
-                        x-data="{
-                            output: @js($run->output),
-                            copied: false,
-                            copy() {
-                                const done = () => {
-                                    this.copied = true
-                                    setTimeout(() => this.copied = false, 2000)
-                                }
-
-                                if (window.isSecureContext && navigator.clipboard) {
-                                    navigator.clipboard.writeText(this.output).then(done)
-
-                                    return
-                                }
-
-                                const field = document.createElement('textarea')
-                                field.value = this.output
-                                field.setAttribute('readonly', '')
-                                field.style.position = 'fixed'
-                                field.style.opacity = '0'
-                                document.body.appendChild(field)
-                                field.select()
-                                document.execCommand('copy')
-                                document.body.removeChild(field)
-                                done()
-                            },
-                        }"
-                        x-on:click="copy()"
+                        :data-output="$run->output"
+                        x-on:click="
+                            const text = $el.dataset.output ?? '';
+                            const field = document.createElement('textarea');
+                            field.value = text;
+                            field.setAttribute('readonly', '');
+                            field.style.position = 'fixed';
+                            field.style.top = '-9999px';
+                            document.body.appendChild(field);
+                            field.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(field);
+                        "
                     >
-                        <span x-show="! copied">Copy</span>
-                        <span x-show="copied" x-cloak>Copied</span>
+                        Copy
                     </x-filament::button>
                 @endif
             </x-slot>

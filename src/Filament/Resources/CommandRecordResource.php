@@ -14,6 +14,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
@@ -59,95 +60,127 @@ class CommandRecordResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('key')
-                ->required()
-                ->alphaDash()
-                ->unique(ignoreRecord: true)
-                ->helperText('Used in URLs, locks and history. Cannot contain spaces.'),
-            Toggle::make('is_enabled')->default(true),
-            TextInput::make('definition.label')->label('Label'),
-            TextInput::make('definition.run')
-                ->label('Run template')
-                ->columnSpanFull()
-                ->required()
-                ->helperText('The first element must be a literal, e.g. backup:run {database}.')
-                // Validated with the real builder, so the form cannot accept a
-                // template the executor would refuse.
-                ->rule(static fn (): callable => static function (string $attribute, mixed $value, callable $fail): void {
-                    try {
-                        Command::make('validation-probe')->run((string) $value)->toDefinition(30);
-                    } catch (Throwable $exception) {
-                        $fail($exception->getMessage());
-                    }
-                }),
-            Select::make('definition.type')
-                ->label('Type')
-                ->options(['artisan' => 'Artisan', 'shell' => 'Shell'])
-                ->default('artisan')
-                ->required(),
-            TextInput::make('definition.group')->label('Group'),
-            Textarea::make('definition.help')->label('Help text'),
-            TextInput::make('definition.timeout')->label('Timeout (seconds)')->numeric()->minValue(1),
-            TextInput::make('definition.ability')->label('Required ability'),
-            Repeater::make('definition.variables')
-                ->label('Variables')
-                ->helperText('One per {token} in the run template.')
-                ->addActionLabel('Add variable')
-                ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
-                ->collapsible()
-                ->default([])
+            Section::make('Command')
+                ->description('What runs, and whether the catalogue offers it at all.')
+                ->columns(2)
                 ->schema([
-                    TextInput::make('name')
+                    TextInput::make('key')
                         ->required()
                         ->alphaDash()
-                        ->helperText('The {token} used in the run template.')
-                        // A variable with no token is dead weight, and a token
-                        // with no variable fails at run time. Caught here so the
-                        // author finds out while editing.
-                        ->rule(static fn (Get $get): callable => static function (string $attribute, mixed $value, callable $fail) use ($get): void {
-                            $run = (string) ($get('../../run') ?? '');
-
-                            if ($value !== null && $run !== '' && ! str_contains($run, '{'.$value.'}')) {
-                                $fail("The run template has no {{$value}} token.");
+                        ->unique(ignoreRecord: true)
+                        ->helperText('Used in URLs, locks and history. Cannot contain spaces.'),
+                    Toggle::make('is_enabled')->default(true),
+                    TextInput::make('definition.run')
+                        ->label('Run template')
+                        ->columnSpanFull()
+                        ->required()
+                        ->helperText('The first element must be a literal, e.g. backup:run {database}.')
+                // Validated with the real builder, so the form cannot accept a
+                // template the executor would refuse.
+                        ->rule(static fn (): callable => static function (string $attribute, mixed $value, callable $fail): void {
+                            try {
+                                Command::make('validation-probe')->run((string) $value)->toDefinition(30);
+                            } catch (Throwable $exception) {
+                                $fail($exception->getMessage());
                             }
                         }),
-                    TextInput::make('label'),
-                    Select::make('type')
-                        ->required()
-                        ->default('text')
-                        ->live()
-                        ->options([
-                            'text' => 'Text',
-                            'select' => 'Select',
-                            'boolean' => 'Toggle',
-                            'model' => 'Model (searchable)',
-                        ]),
-                    Toggle::make('required'),
-                    TextInput::make('default'),
-                    TextInput::make('help'),
-                    Toggle::make('redact')
-                        ->label('Keep out of history')
-                        ->helperText('Still passed to the process; hidden from the run record.'),
-                    KeyValue::make('options')
-                        ->keyLabel('Value')
-                        ->valueLabel('Label')
-                        ->visible(fn (Get $get): bool => $get('type') === 'select'),
-                    TextInput::make('model')
-                        ->label('Model class')
-                        ->visible(fn (Get $get): bool => $get('type') === 'model'),
-                    TextInput::make('title_attribute')
-                        ->label('Title attribute')
-                        ->default('name')
-                        ->visible(fn (Get $get): bool => $get('type') === 'model'),
-                    TextInput::make('value_attribute')
-                        ->label('Value attribute')
-                        ->default('id')
-                        ->visible(fn (Get $get): bool => $get('type') === 'model'),
+                    Select::make('definition.type')
+                        ->label('Type')
+                        ->options(['artisan' => 'Artisan', 'shell' => 'Shell'])
+                        ->default('artisan')
+                        ->required(),
                 ]),
-            KeyValue::make('definition.flags')
-                ->label('Flags')
-                ->keyLabel('Flag')
-                ->valueLabel('Label'),
+
+            Section::make('Presentation')
+                ->description('How the command reads in the catalogue.')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('definition.label')->label('Label'),
+                    TextInput::make('definition.group')->label('Group'),
+                    Textarea::make('definition.help')
+                        ->label('Help text')
+                        ->rows(2)
+                        ->columnSpanFull(),
+                ]),
+
+            Section::make('Execution')
+                ->description('Limits and permissions applied every time it runs.')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('definition.timeout')
+                        ->label('Timeout (seconds)')
+                        ->numeric()
+                        ->minValue(1)
+                        ->helperText('Past the synchronous limit the command has to be queued.'),
+                    TextInput::make('definition.ability')
+                        ->label('Required ability')
+                        ->helperText('A gate ability. Without one, anyone with panel access can run this.'),
+                ]),
+
+            Section::make('Inputs')
+                ->description('Values the operator supplies, and switches they can toggle.')
+                ->schema([
+                    Repeater::make('definition.variables')
+                        ->label('Variables')
+                        ->helperText('One per {token} in the run template.')
+                        ->addActionLabel('Add variable')
+                        ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
+                        ->collapsible()
+                        ->default([])
+                        ->schema([
+                            TextInput::make('name')
+                                ->required()
+                                ->alphaDash()
+                                ->helperText('The {token} used in the run template.')
+                                // A variable with no token is dead weight, and a token
+                                // with no variable fails at run time. Caught here so the
+                                // author finds out while editing.
+                                ->rule(static fn (Get $get): callable => static function (string $attribute, mixed $value, callable $fail) use ($get): void {
+                                    $run = (string) ($get('../../run') ?? '');
+
+                                    if ($value !== null && $run !== '' && ! str_contains($run, '{'.$value.'}')) {
+                                        $fail("The run template has no {{$value}} token.");
+                                    }
+                                }),
+                            TextInput::make('label'),
+                            Select::make('type')
+                                ->required()
+                                ->default('text')
+                                ->live()
+                                ->options([
+                                    'text' => 'Text',
+                                    'select' => 'Select',
+                                    'boolean' => 'Toggle',
+                                    'model' => 'Model (searchable)',
+                                ]),
+                            Toggle::make('required'),
+                            TextInput::make('default'),
+                            TextInput::make('help'),
+                            Toggle::make('redact')
+                                ->label('Keep out of history')
+                                ->helperText('Still passed to the process; hidden from the run record.'),
+                            KeyValue::make('options')
+                                ->keyLabel('Value')
+                                ->valueLabel('Label')
+                                ->visible(fn (Get $get): bool => $get('type') === 'select'),
+                            TextInput::make('model')
+                                ->label('Model class')
+                                ->visible(fn (Get $get): bool => $get('type') === 'model'),
+                            TextInput::make('title_attribute')
+                                ->label('Title attribute')
+                                ->default('name')
+                                ->visible(fn (Get $get): bool => $get('type') === 'model'),
+                            TextInput::make('value_attribute')
+                                ->label('Value attribute')
+                                ->default('id')
+                                ->visible(fn (Get $get): bool => $get('type') === 'model'),
+                        ]),
+                    KeyValue::make('definition.flags')
+                        ->label('Flags')
+                        ->keyLabel('Flag')
+                        ->valueLabel('Label')
+                        ->helperText('A checked flag is appended to the argv vector, e.g. --force.'),
+                ]),
         ]);
     }
 

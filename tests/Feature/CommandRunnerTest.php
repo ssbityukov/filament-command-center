@@ -124,14 +124,21 @@ it('records a failure when the process cannot start', function (): void {
 
     $run = app(CommandRunner::class)->run($definition, []);
 
-    // On this platform, Symfony's array-command proc_open call fails silently
-    // for a missing binary and falls back to a `sh -c 'exec ...'` wrapper. The
-    // shell itself starts fine, so no PHP exception is thrown; the failure
-    // surfaces as a non-zero exit code with the shell's diagnostic on stderr,
-    // which CommandRunner merges into the recorded output.
+    // Symfony's array-command proc_open call fails silently for a missing
+    // binary and falls back to a `sh -c 'exec ...'` wrapper. The shell itself
+    // starts fine, so no PHP exception is thrown; the failure surfaces as a
+    // non-zero exit code with the shell's diagnostic on stderr, which
+    // CommandRunner merges into the recorded output.
+    //
+    // The assertion names the binary rather than the diagnostic: the wording is
+    // the shell's, and it differs by platform — bash on macOS says "No such file
+    // or directory" where dash on Ubuntu says "not found". What the package
+    // guarantees is that the run fails with a reason attached, never silently.
     expect($run->state)->toBe(RunState::Failed)
         ->and($run->exitCode)->not->toBeNull()
-        ->and($run->output)->toContain('No such file or directory');
+        ->and($run->exitCode)->not->toBe(0)
+        ->and($run->output)->toContain('/nonexistent/binary/xyz')
+        ->and(trim($run->output))->not->toBe('');
 });
 
 it('marks a run that exceeds its timeout', function (): void {

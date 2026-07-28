@@ -103,6 +103,33 @@ final readonly class Run
         );
     }
 
+    /**
+     * Adopt a caller-chosen id.
+     *
+     * A queued run is recorded, and its output buffer keyed, before the process
+     * exists. The id therefore has to be decided by the dispatcher rather than
+     * by whichever object happens to construct the Run.
+     */
+    public function withId(string $id): self
+    {
+        return new self(
+            id: $id,
+            commandKey: $this->commandKey,
+            label: $this->label,
+            userId: $this->userId,
+            input: $this->input,
+            argv: $this->argv,
+            state: $this->state,
+            startedAt: $this->startedAt,
+            finishedAt: $this->finishedAt,
+            durationMs: $this->durationMs,
+            exitCode: $this->exitCode,
+            output: $this->output,
+            progress: $this->progress,
+            error: $this->error,
+        );
+    }
+
     public function markRunning(): self
     {
         return $this->with(state: RunState::Running, startedAt: CarbonImmutable::now());

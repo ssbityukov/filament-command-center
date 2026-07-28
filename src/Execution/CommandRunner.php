@@ -14,10 +14,17 @@ final class CommandRunner
     public function __construct(
         private readonly ArgvBuilder $argvBuilder,
         private readonly ProcessFactory $processFactory,
+        private readonly RunObserver $observer,
+        private readonly Cancellation $cancellation,
     ) {}
 
     /**
      * Run a command synchronously and return its terminal Run.
+     *
+     * Passing a run id opts into live streaming: output goes to the buffer,
+     * progress is parsed, and a cancellation request stops the process. Without
+     * one, the run is invisible until it finishes — which is exactly what a
+     * short synchronous run wants.
      *
      * @param  array<string, mixed>  $input
      * @param  (callable(string): void)|null  $onOutput
@@ -27,26 +34,57 @@ final class CommandRunner
         array $input,
         int|string|null $userId = null,
         ?callable $onOutput = null,
+        ?string $runId = null,
     ): Run {
         $argv = $this->argvBuilder->build($definition, $input);
         $process = $this->processFactory->make($definition, $argv);
 
         $run = Run::start($definition, $this->redact($definition, $input), $argv, $userId);
 
+        if ($runId !== null) {
+            $run = $run->withId($runId);
+        }
+
+        $observe = $runId === null ? null : $this->observer->for($runId);
+
         $buffer = '';
+        $cancelled = false;
 
         try {
-            $process->run(function (string $type, string $chunk) use (&$buffer, $onOutput): void {
+            $process->run(function (string $type, string $chunk) use (
+                &$buffer,
+                &$cancelled,
+                $onOutput,
+                $observe,
+                $runId,
+                $process,
+            ): void {
                 $buffer .= $chunk;
+
+                if ($observe !== null) {
+                    $observe($chunk);
+                }
 
                 if ($onOutput !== null) {
                     $onOutput($chunk);
+                }
+
+                // Checked per chunk rather than on a timer: a command that has
+                // stopped talking cannot be interrupted by us anyway, and its
+                // own timeout is what bounds that case.
+                if ($runId !== null && ! $cancelled && $this->cancellation->requested($runId)) {
+                    $cancelled = true;
+                    $process->stop(timeout: 10);
                 }
             });
         } catch (ProcessTimedOutException) {
             return $run->timeout($buffer);
         } catch (Throwable $exception) {
             return $run->withOutput($buffer)->fail($exception->getMessage());
+        }
+
+        if ($cancelled) {
+            return $run->cancel($buffer);
         }
 
         return $run->finish($process->getExitCode() ?? 1, $buffer);

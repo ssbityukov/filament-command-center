@@ -9,6 +9,7 @@ use Bityukov\CommandCenter\Execution\RunDispatcher;
 use Bityukov\CommandCenter\Jobs\RunCommandJob;
 use Bityukov\CommandCenter\Runs\RunState;
 use Bityukov\CommandCenter\Runs\RunStore;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
 use Symfony\Component\Process\PhpExecutableFinder;
 
@@ -145,4 +146,15 @@ it('redacts a redacted value in the recorded queued run', function (): void {
     );
 
     expect($run->input['secret'])->toBe('[redacted]');
+});
+
+it('refuses to dispatch a command the user is not authorized for', function (): void {
+    config()->set('command-center.commands.sync-one.ability', 'run-sync');
+    app()->forgetScopedInstances();
+    Gate::define('run-sync', fn (): bool => false);
+
+    $run = app(RunDispatcher::class)->dispatch(definitionFor('sync-one'), [], userId: 1);
+
+    expect($run->state)->toBe(RunState::Rejected)
+        ->and($run->error)->toContain('authorized');
 });

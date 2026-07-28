@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bityukov\CommandCenter\Execution;
 
+use Bityukov\CommandCenter\Authorization\Authorizer;
 use Bityukov\CommandCenter\Definitions\CommandDefinition;
 use Bityukov\CommandCenter\Jobs\RunCommandJob;
 use Bityukov\CommandCenter\Runs\Run;
@@ -22,6 +23,7 @@ use Illuminate\Support\Str;
 final class RunDispatcher
 {
     public function __construct(
+        private readonly Authorizer $authorizer,
         private readonly RunRateLimiter $rateLimiter,
         private readonly ConcurrencyLock $lock,
         private readonly CommandRunner $runner,
@@ -33,6 +35,13 @@ final class RunDispatcher
      */
     public function dispatch(CommandDefinition $definition, array $input, int|string|null $userId): Run
     {
+        // Checked here as well as in the calling UI. This class is the entry
+        // point every caller goes through, so the guarantee belongs on it
+        // rather than on each caller remembering.
+        if (! $this->authorizer->allows($definition)) {
+            return $this->reject($definition, $userId, 'You are not authorized to run this command.');
+        }
+
         $retryAfter = $this->rateLimiter->check($definition, $userId);
 
         if ($retryAfter !== null) {

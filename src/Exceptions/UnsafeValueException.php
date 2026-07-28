@@ -20,8 +20,9 @@ final class UnsafeValueException extends RuntimeException
     {
         return new self(sprintf(
             'Command [%s] rejected the value for variable "%s" because it starts with "-". '
-            .'The token {%s} is a whole argument on its own, so the target command would read '
-            .'the value as an option rather than as a value. Embed the token in a literal '
+            .'The token {%s} opens its argv element, so the value decides that element\'s first '
+            .'character and the target command would read it as an option rather than as a value. '
+            .'Put literal text before the token '
             .'(for example --name={%s}), or call ->allowsLeadingDash() on the variable if the '
             .'command genuinely accepts an operand that starts with a dash.',
             $key,

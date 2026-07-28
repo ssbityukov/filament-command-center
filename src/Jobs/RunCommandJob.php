@@ -6,6 +6,7 @@ namespace Bityukov\CommandCenter\Jobs;
 
 use Bityukov\CommandCenter\Authorization\Authorizer;
 use Bityukov\CommandCenter\CommandRegistry;
+use Bityukov\CommandCenter\Execution\Cancellation;
 use Bityukov\CommandCenter\Execution\CommandRunner;
 use Bityukov\CommandCenter\Execution\ConcurrencyLock;
 use Bityukov\CommandCenter\Runs\Run;
@@ -57,6 +58,7 @@ final class RunCommandJob implements ShouldQueue
         CommandRunner $runner,
         RunStore $store,
         ConcurrencyLock $lock,
+        Cancellation $cancellation,
     ): void {
         $stored = $store->find($this->runId);
         $definition = $registry->find($this->commandKey);
@@ -71,6 +73,18 @@ final class RunCommandJob implements ShouldQueue
         // between the click and the worker picking the job up.
         if (! $authorizer->allows($definition, $this->user())) {
             $this->reject($store, $stored, 'Authorization was revoked before the command ran.');
+
+            return;
+        }
+
+        // Cancelling a run that is still queued has to stop it here. The runner
+        // only notices a cancellation between chunks of output, which is no use
+        // before a process exists — and a user who cancelled a privileged
+        // command must never watch it run anyway.
+        if ($cancellation->requested($this->runId)) {
+            if ($stored !== null) {
+                $store->put($stored->cancel($stored->output));
+            }
 
             return;
         }

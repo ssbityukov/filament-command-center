@@ -120,6 +120,11 @@ class RunView extends Page
      */
     public function refresh(): void
     {
+        // Re-checked on every tick, not just at mount: a gate can be revoked
+        // while the page sits open, and polling would otherwise keep streaming
+        // a privileged command's output to someone who lost the right to it.
+        $this->assertStillVisible();
+
         $chunk = app(OutputBuffer::class)->read($this->runId, $this->outputOffset);
 
         if ($chunk !== '') {
@@ -130,6 +135,14 @@ class RunView extends Page
         // Drop the computed cache so the next read sees what the worker just
         // wrote rather than the state this request started with.
         unset($this->record);
+    }
+
+    private function assertStillVisible(): void
+    {
+        $record = $this->record();
+
+        abort_if($record === null, 404);
+        abort_unless(app(RunVisibility::class)->allows($record), 404);
     }
 
     public function progress(): ?int
@@ -162,9 +175,10 @@ class RunView extends Page
             ->requiresConfirmation()
             ->visible(fn (): bool => $this->isLive())
             ->action(function (): void {
-                // Authorization is the same as running the command: mount()
-                // already refused a run this user may not see, and cancelling is
-                // not a wider power than starting it.
+                // Authorization is the same as running the command, and it is
+                // re-checked here because mount() ran in an earlier request.
+                $this->assertStillVisible();
+
                 app(Cancellation::class)->request($this->runId);
             });
     }

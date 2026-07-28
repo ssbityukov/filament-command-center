@@ -123,3 +123,42 @@ it('refuses to open a run the user may not see', function (): void {
 
     (new RunView)->mount('live-run');
 })->throws(NotFoundHttpException::class);
+
+it('stops serving output when the ability is revoked after the page was opened', function (): void {
+    config()->set('command-center.commands.slow.ability', 'run-slow');
+    app()->forgetScopedInstances();
+    Gate::define('run-slow', fn (): bool => true);
+
+    liveRun(RunState::Running);
+    app(OutputBuffer::class)->append('live-run', 'secret output');
+
+    $page = livewire(RunView::class, ['run' => 'live-run']);
+
+    // The gate is revoked while the page sits there polling. The Livewire test
+    // renderer turns the resulting abort into a response rather than letting it
+    // escape, so the assertion is on the consequence: no output reaches the
+    // component.
+    Gate::define('run-slow', fn (): bool => false);
+
+    $page->call('refresh')->assertSet('liveOutput', '');
+});
+
+it('refuses to cancel once the ability is revoked', function (): void {
+    config()->set('command-center.commands.slow.ability', 'run-slow');
+    app()->forgetScopedInstances();
+    Gate::define('run-slow', fn (): bool => true);
+
+    liveRun(RunState::Running);
+
+    $page = livewire(RunView::class, ['run' => 'live-run']);
+
+    Gate::define('run-slow', fn (): bool => false);
+
+    try {
+        $page->callAction('cancel');
+    } catch (Throwable) {
+        // Refused, which is the point.
+    }
+
+    expect(app(Cancellation::class)->requested('live-run'))->toBeFalse();
+});

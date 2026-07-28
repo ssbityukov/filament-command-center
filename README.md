@@ -11,6 +11,12 @@ input never becomes a structural part of a command line, and each command can re
 - Run history with no migration required, or a durable database driver
 - `command-center:check` validates every definition in CI
 
+## Status
+
+Not tagged yet. The suite is green in CI across every supported combination, but
+the browser suite covers the guest path only — the signed-in path is marked todo
+rather than skipped, so it reads as outstanding work rather than as silence.
+
 ## Credits
 
 This package is a Filament port of [farsidev/nova-command-center](https://github.com/farsidev/nova-command-center),
@@ -25,6 +31,12 @@ PHP 8.4+, Laravel 12 or 13, Filament 5.
 
 The suite runs against each of those combinations in CI. Older versions are not
 listed because they are not tested, not because they are known to break.
+
+**Linux and macOS.** Windows is untested and not claimed. The reason is not
+effort but behaviour: on Unix an argument array goes to `proc_open` and execs the
+binary with no shell involved, while on Windows Symfony always converts it to an
+escaped command string. That is a different guarantee, and this package has never
+run a test against it.
 
 ## Installation
 

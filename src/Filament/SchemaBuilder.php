@@ -82,9 +82,25 @@ final class SchemaBuilder
 
         return $field
             ->label($variable->label)
-            ->helperText($variable->help)
+            ->helperText($this->helperFor($variable))
             ->required($variable->required)
             ->rules($variable->rules);
+    }
+
+    /**
+     * Falls back to a hint the field cannot infer from its label alone.
+     */
+    private function helperFor(Variable $variable): ?string
+    {
+        if ($variable->help !== null) {
+            return $variable->help;
+        }
+
+        if ($variable instanceof ModelVariable) {
+            return 'Type at least part of the '.$variable->titleAttribute.' to search.';
+        }
+
+        return null;
     }
 
     private function textField(Variable $variable): TextInput
@@ -107,6 +123,14 @@ final class SchemaBuilder
         /** @var ModelVariable $variable */
         return Select::make($variable->name)
             ->searchable()
+            // A searchable select starts empty, which reads as a broken field
+            // unless it says what to type. The prompts name the attribute the
+            // search actually runs against.
+            ->placeholder('Start typing to search')
+            ->searchPrompt('Search by '.$variable->titleAttribute)
+            ->searchingMessage('Searching…')
+            ->noSearchResultsMessage('Nothing matches that.')
+            ->loadingMessage('Loading…')
             // Server-side search rather than a preloaded option list: the table
             // behind a model variable can be large, and rendering a dropdown
             // should not mean loading all of it.

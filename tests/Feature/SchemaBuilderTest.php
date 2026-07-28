@@ -132,3 +132,14 @@ it('builds defaults from variable defaults and flag defaults', function (): void
         SchemaBuilder::flagKey('--force') => true,
     ]);
 });
+
+it('tells the operator what to type into a model field', function (): void {
+    $fields = builtFields(
+        Command::make('x')->run('a {user}')->variables([
+            ModelVariable::make('user')->model(TestUser::class)->titleAttribute('name'),
+        ]),
+    );
+
+    expect($fields[0]->getPlaceholder())->toBe('Start typing to search')
+        ->and($fields[0]->getSearchPrompt())->toBe('Search by name');
+});

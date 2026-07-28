@@ -91,5 +91,12 @@ abstract class TestCase extends Orchestra
     protected function defineDatabaseMigrations(): void
     {
         $this->loadLaravelMigrations();
+
+        // The package's own migrations are publishable rather than automatic,
+        // so the suite loads them explicitly — the same thing an adopting app
+        // does after vendor:publish.
+        foreach (glob(__DIR__.'/../database/migrations/*.php.stub') ?: [] as $stub) {
+            (include $stub)->up();
+        }
     }
 }

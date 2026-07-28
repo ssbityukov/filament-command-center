@@ -16,6 +16,7 @@ class CommandCenterServiceProvider extends PackageServiceProvider
             ->name('command-center')
             ->hasConfigFile('command-center')
             ->hasViews('command-center')
+            ->hasMigration('create_command_center_runs_table')
             ->hasCommand(Commands\CheckCommand::class);
     }
 

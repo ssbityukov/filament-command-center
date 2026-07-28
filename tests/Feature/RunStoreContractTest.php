@@ -12,7 +12,7 @@ use Bityukov\CommandCenter\Runs\RunStore;
  | driver needs a special case here, that is a signal the contract is wrong, not
  | that the driver deserves an exception.
  */
-dataset('runStoreDrivers', ['cache']);
+dataset('runStoreDrivers', ['cache', 'database']);
 
 function contractStore(string $driver): RunStore
 {

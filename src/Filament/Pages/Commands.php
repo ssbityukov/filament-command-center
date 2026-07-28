@@ -30,6 +30,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Throwable;
@@ -37,6 +38,28 @@ use Throwable;
 class Commands extends Page implements HasTable
 {
     use InteractsWithTable;
+
+    /**
+     * Amber deep enough for a white label.
+     *
+     * Filament picks the label colour by contrast, so the lighter amber shades
+     * get dark text — a white label on those would fail contrast rather than
+     * look deliberate. This is amber-700, which reads as the same yellow and
+     * carries white.
+     */
+    private const IMMEDIATE_COLOR = [
+        50 => '254, 252, 232',
+        100 => '254, 249, 195',
+        200 => '254, 240, 138',
+        300 => '253, 224, 71',
+        400 => '250, 204, 21',
+        500 => '234, 179, 8',
+        600 => '180, 83, 9',
+        700 => '146, 64, 14',
+        800 => '120, 53, 15',
+        900 => '113, 63, 18',
+        950 => '66, 32, 6',
+    ];
 
     protected static ?string $slug = 'command-center/commands';
 
@@ -140,14 +163,14 @@ class Commands extends Page implements HasTable
             // The colour says what kind of run this is before you click:
             // red for anything the definition marked as needing confirmation,
             // blue for work that goes to a worker, primary for the rest.
-            ->color(function (array $arguments, ?array $record = null): string {
+            ->color(function (array $arguments, ?array $record = null): string|array {
                 $definition = $this->definitionFor($arguments, $record);
 
                 return match (true) {
-                    $definition === null => 'primary',
+                    $definition === null => self::IMMEDIATE_COLOR,
                     $definition->confirm !== false => 'danger',
                     $definition->isQueued() => 'info',
-                    default => 'primary',
+                    default => self::IMMEDIATE_COLOR,
                 };
             })
             // A command with nothing to fill in and nothing to confirm runs on
@@ -423,6 +446,15 @@ class Commands extends Page implements HasTable
                     ->badge()
                     ->color(fn (string $state): string => $state === 'Queued' ? 'info' : 'gray'),
             ])
+            // Grouping by the definition's own group: the catalogue reads as
+            // sections the way it did before it became a table, but the
+            // grouping, counts and collapsing are Filament's.
+            ->groups([
+                Group::make('group')
+                    ->label('Group')
+                    ->collapsible(),
+            ])
+            ->defaultGroup('group')
             ->filters([
                 SelectFilter::make('group')
                     ->label('Group')

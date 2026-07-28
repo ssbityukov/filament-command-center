@@ -108,3 +108,20 @@ it('searches the command line as well as the label', function (): void {
         ->assertSee('List routes')
         ->assertDontSee('Backup database');
 });
+
+it('groups the catalogue by the command group', function (): void {
+    Gate::define('run-backups', fn (): bool => true);
+
+    $table = livewire(Commands::class)->instance()->getTable();
+
+    expect($table->getGroups())->toHaveKey('group')
+        ->and($table->getDefaultGroup()?->getId())->toBe('group');
+});
+
+it('still renders every group heading', function (): void {
+    Gate::define('run-backups', fn (): bool => true);
+
+    livewire(Commands::class)
+        ->assertSee('Diagnostics')
+        ->assertSee('Maintenance');
+});

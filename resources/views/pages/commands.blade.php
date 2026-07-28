@@ -23,6 +23,12 @@
                 </x-filament::badge>
             </x-slot>
             <x-slot name="headerEnd">
+                @if ($run->durationMs !== null)
+                    <x-filament::badge tag="span" color="gray" size="sm">
+                        {{ number_format($run->durationMs / 1000, 2) }}s
+                    </x-filament::badge>
+                @endif
+
                 {{ $this->copyOutputAction }}
 
                 <x-filament::link :href="$this->runViewUrl($run)" size="xs">

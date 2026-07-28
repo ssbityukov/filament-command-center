@@ -347,3 +347,12 @@ it('notifies of a failure when the output declared one despite a zero exit', fun
                 ->body('The command exited zero but its output contains "hello", which this command treats as a failure.')
         );
 });
+
+it('shows the duration and a copy action beside the result', function (): void {
+    $page = livewire(Commands::class)
+        ->callAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']), ['payload' => 'hi']);
+
+    $page->assertActionVisible('copyOutput');
+
+    expect(app(RunStore::class)->recent()[0]->durationMs)->not->toBeNull();
+});

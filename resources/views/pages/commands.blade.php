@@ -31,15 +31,41 @@
                 @endif
 
                 @if ($run->output !== '')
-                    {{-- Copying happens in the browser: a round trip to the
-                         server to hand back text the page already has would be
-                         a slower way to reach the same clipboard. --}}
+                    {{-- navigator.clipboard exists only in a secure context, so
+                         a panel served over plain http has none. The textarea
+                         fallback is what actually copies there. --}}
                     <x-filament::button
                         size="xs"
                         color="gray"
                         icon="heroicon-m-clipboard"
-                        x-data="{ output: @js($run->output), copied: false }"
-                        x-on:click="navigator.clipboard.writeText(output); copied = true; setTimeout(() => copied = false, 2000)"
+                        x-data="{
+                            output: @js($run->output),
+                            copied: false,
+                            copy() {
+                                const done = () => {
+                                    this.copied = true
+                                    setTimeout(() => this.copied = false, 2000)
+                                }
+
+                                if (window.isSecureContext && navigator.clipboard) {
+                                    navigator.clipboard.writeText(this.output).then(done)
+
+                                    return
+                                }
+
+                                const field = document.createElement('textarea')
+                                field.value = this.output
+                                field.setAttribute('readonly', '')
+                                field.style.position = 'fixed'
+                                field.style.opacity = '0'
+                                document.body.appendChild(field)
+                                field.select()
+                                document.execCommand('copy')
+                                document.body.removeChild(field)
+                                done()
+                            },
+                        }"
+                        x-on:click="copy()"
                     >
                         <span x-show="! copied">Copy</span>
                         <span x-show="copied" x-cloak>Copied</span>

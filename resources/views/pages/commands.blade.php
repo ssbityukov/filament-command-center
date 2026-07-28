@@ -32,6 +32,8 @@
                                     <x-filament::badge size="sm" color="info">queued</x-filament::badge>
                                 @endif
                             </div>
+
+                            {{ ($this->runAction)(['commandKey' => $definition->key]) }}
                         </div>
                     </x-filament::section>
                 @endforeach

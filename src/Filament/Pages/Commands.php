@@ -23,6 +23,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Colors\Color;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize as TextColumnSize;
@@ -38,28 +39,6 @@ use Throwable;
 class Commands extends Page implements HasTable
 {
     use InteractsWithTable;
-
-    /**
-     * Amber deep enough for a white label.
-     *
-     * Filament picks the label colour by contrast, so the lighter amber shades
-     * get dark text — a white label on those would fail contrast rather than
-     * look deliberate. This is amber-700, which reads as the same yellow and
-     * carries white.
-     */
-    private const IMMEDIATE_COLOR = [
-        50 => '254, 252, 232',
-        100 => '254, 249, 195',
-        200 => '254, 240, 138',
-        300 => '253, 224, 71',
-        400 => '250, 204, 21',
-        500 => '234, 179, 8',
-        600 => '180, 83, 9',
-        700 => '146, 64, 14',
-        800 => '120, 53, 15',
-        900 => '113, 63, 18',
-        950 => '66, 32, 6',
-    ];
 
     protected static ?string $slug = 'command-center/commands';
 
@@ -152,6 +131,34 @@ class Commands extends Page implements HasTable
         return $groups;
     }
 
+    /**
+     * Amber, shifted deep enough to carry a white label.
+     *
+     * Filament picks the label colour by contrast, so the lighter amber shades
+     * get dark text and asking for white on those would fail contrast rather
+     * than look deliberate. Shifting the scale two steps keeps the same yellow
+     * family while making the shades Filament actually paints buttons with dark
+     * enough for white.
+     *
+     * Built from Filament's own palette rather than written out: the values are
+     * OKLCH in v5, and a hand-written RGB triplet is silently ignored.
+     *
+     * @return array<int, string>
+     */
+    private static function immediateColor(): array
+    {
+        $amber = Color::Amber;
+
+        $shades = array_keys($amber);
+        $shifted = [];
+
+        foreach ($shades as $index => $shade) {
+            $shifted[$shade] = $amber[$shades[min($index + 2, count($shades) - 1)]];
+        }
+
+        return $shifted;
+    }
+
     public function runAction(): Action
     {
         return Action::make('run')
@@ -167,10 +174,10 @@ class Commands extends Page implements HasTable
                 $definition = $this->definitionFor($arguments, $record);
 
                 return match (true) {
-                    $definition === null => self::IMMEDIATE_COLOR,
+                    $definition === null => self::immediateColor(),
                     $definition->confirm !== false => 'danger',
                     $definition->isQueued() => 'info',
-                    default => self::IMMEDIATE_COLOR,
+                    default => self::immediateColor(),
                 };
             })
             // A command with nothing to fill in and nothing to confirm runs on

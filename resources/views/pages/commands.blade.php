@@ -22,7 +22,8 @@
                     {{ $run->state->label() }}
                 </x-filament::badge>
             </x-slot>
-            <x-slot name="headerEnd">
+            {{-- afterHeader is the slot Filament's section actually renders on the right --}}
+            <x-slot name="afterHeader">
                 @if ($run->durationMs !== null)
                     <x-filament::badge tag="span" color="gray" size="sm">
                         {{ number_format($run->durationMs / 1000, 2) }}s

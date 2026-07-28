@@ -220,7 +220,7 @@ class RunView extends Page
     {
         return Action::make('rerun')
             ->label('Re-run')
-            ->url(fn (): string => Commands::getUrl())
+            ->url(fn (): string => Commands::getUrl(['rerun' => $this->runId]))
             ->visible(function (): bool {
                 $record = $this->record();
 

@@ -82,6 +82,47 @@ class Commands extends Page implements HasTable
     public ?string $lastRunId = null;
 
     /**
+     * A run to repeat, taken from the query string.
+     */
+    public ?string $rerun = null;
+
+    /**
+     * Values restored from the run being repeated, keyed by command key.
+     *
+     * @var array<string, mixed>
+     */
+    public array $rerunInput = [];
+
+    /**
+     * Reopen the modal with the previous values when arriving from Re-run.
+     *
+     * Visibility is checked the same way the run view checks it: a run id in a
+     * URL must not become a way to read someone else's input.
+     */
+    public function mount(): void
+    {
+        if ($this->rerun === null) {
+            return;
+        }
+
+        $run = app(RunStore::class)->find($this->rerun);
+
+        if ($run === null || ! app(RunVisibility::class)->allows($run)) {
+            return;
+        }
+
+        $definition = app(CommandRegistry::class)->find($run->commandKey);
+
+        if ($definition === null || ! app(Authorizer::class)->allows($definition)) {
+            return;
+        }
+
+        $this->rerunInput = $run->input;
+
+        $this->mountAction('run', ['commandKey' => $run->commandKey]);
+    }
+
+    /**
      * The plugin decides whether pages live in the cluster, and it must do so
      * before Filament reads getCluster() during page registration. A static
      * setter is how Filament's own navigation properties are configured.
@@ -273,7 +314,16 @@ class Commands extends Page implements HasTable
     {
         $definition = $this->definitionFor($arguments, $record);
 
-        return $definition === null ? [] : app(SchemaBuilder::class)->defaults($definition);
+        if ($definition === null) {
+            return [];
+        }
+
+        $defaults = app(SchemaBuilder::class)->defaults($definition);
+
+        // Values from the run being repeated win over the definition's
+        // defaults. A redacted value was never stored, so it comes back as the
+        // marker and the operator retypes it.
+        return $this->rerunInput === [] ? $defaults : array_merge($defaults, $this->rerunInput);
     }
 
     /**

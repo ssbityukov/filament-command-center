@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use Bityukov\CommandCenter\Definitions\Command;
 use Bityukov\CommandCenter\Filament\Pages\Commands;
 use Bityukov\CommandCenter\Filament\SchemaBuilder;
 use Bityukov\CommandCenter\Jobs\RunCommandJob;
+use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
 use Bityukov\CommandCenter\Runs\RunStore;
 use Bityukov\CommandCenter\Tests\Fixtures\TestUser;
@@ -357,4 +359,29 @@ it('shows the duration and a copy action beside the result', function (): void {
     $page->assertSee('Copy');
 
     expect(app(RunStore::class)->recent()[0]->durationMs)->not->toBeNull();
+});
+
+it('reopens the modal with the previous values when re-running', function (): void {
+    livewire(Commands::class)
+        ->callAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']), ['payload' => 'first']);
+
+    $previous = app(RunStore::class)->recent()[0];
+
+    livewire(Commands::class, ['rerun' => $previous->id])
+        ->assertActionMounted()
+        ->assertSchemaStateSet(['payload' => 'first']);
+});
+
+it('ignores a re-run id the user may not see', function (): void {
+    config()->set('command-center.commands.echo-value.ability', 'run-echo');
+    app()->forgetScopedInstances();
+    Gate::define('run-echo', fn (): bool => false);
+
+    $definition = Command::make('echo-value')
+        ->run('x')->ability('run-echo')->toDefinition(30);
+
+    $run = Run::start($definition, ['payload' => 'secret'], ['x'], 1)->finish(0, '');
+    app(RunStore::class)->put($run);
+
+    livewire(Commands::class, ['rerun' => $run->id])->assertActionNotMounted();
 });

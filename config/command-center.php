@@ -49,6 +49,19 @@ return [
     ],
 
     /*
+     | Live output.
+     |
+     | Output is streamed into the cache while a command runs and copied onto
+     | the run record when it finishes. The cap bounds a runaway command's log;
+     | the head and tail are kept and the middle is dropped.
+     */
+    'output' => [
+        'max_bytes' => 262144,
+        'ttl_minutes' => 60,
+        'poll_ms' => 750,
+    ],
+
+    /*
      | Run history.
      |
      | The cache driver needs no migration, which keeps installation to a single

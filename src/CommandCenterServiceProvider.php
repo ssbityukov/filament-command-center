@@ -46,6 +46,10 @@ class CommandCenterServiceProvider extends PackageServiceProvider
             ttlHours: (int) config('command-center.history.ttl_hours', 168),
         ));
 
+        $this->app->singleton(Execution\OutputBuffer::class, fn ($app): Execution\OutputBuffer => new Execution\OutputBuffer(
+            $app->make('cache')->store(config('command-center.history.store')),
+        ));
+
         $this->app->singleton(Authorization\Authorizer::class);
 
         $this->app->singleton(Execution\ArgvBuilder::class);

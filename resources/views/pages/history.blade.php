@@ -1,7 +1,5 @@
 <x-filament-panels::page>
-    <div class="flex justify-end">
-        {{ $this->pruneAction }}
-    </div>
+    <x-filament::actions :actions="[$this->pruneAction]" alignment="end" />
 
     {{ $this->table }}
 </x-filament-panels::page>

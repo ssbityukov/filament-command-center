@@ -23,11 +23,21 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Enums\FontFamily;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\TextSize as TextColumnSize;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Throwable;
 
-class Commands extends Page
+class Commands extends Page implements HasTable
 {
+    use InteractsWithTable;
+
     protected static ?string $slug = 'command-center/commands';
 
     protected static ?string $title = 'Commands';
@@ -126,22 +136,22 @@ class Commands extends Page
             // A command with nothing to fill in and nothing to confirm runs on
             // the first click. Filament opens a modal as soon as an action has
             // a heading or a schema, so this says plainly when there is none.
-            ->modalHidden(fn (array $arguments): bool => ! $this->needsModal($arguments))
-            ->modalHeading(function (array $arguments): string {
-                $definition = $this->definitionFor($arguments);
+            ->modalHidden(fn (array $arguments, ?array $record = null): bool => ! $this->needsModal($arguments, $record))
+            ->modalHeading(function (array $arguments, ?array $record = null): string {
+                $definition = $this->definitionFor($arguments, $record);
 
                 return $definition === null ? 'Run command' : $definition->label;
             })
-            ->fillForm(fn (array $arguments): array => $this->fillFor($arguments))
-            ->schema(fn (array $arguments): array => $this->schemaFor($arguments))
-            ->requiresConfirmation(fn (array $arguments): bool => $this->definitionFor($arguments)?->confirm !== false)
-            ->modalDescription(function (array $arguments): ?string {
-                $confirm = $this->definitionFor($arguments)?->confirm;
+            ->fillForm(fn (array $arguments, ?array $record = null): array => $this->fillFor($arguments, $record))
+            ->schema(fn (array $arguments, ?array $record = null): array => $this->schemaFor($arguments, $record))
+            ->requiresConfirmation(fn (array $arguments, ?array $record = null): bool => $this->definitionFor($arguments, $record)?->confirm !== false)
+            ->modalDescription(function (array $arguments, ?array $record = null): ?string {
+                $confirm = $this->definitionFor($arguments, $record)?->confirm;
 
                 return is_string($confirm) ? $confirm : null;
             })
             ->modalSubmitActionLabel('Run')
-            ->action(fn (array $arguments, array $data) => $this->execute($arguments, $data));
+            ->action(fn (array $arguments, array $data, ?array $record = null) => $this->execute($arguments, $data, $record));
     }
 
     /**
@@ -178,10 +188,11 @@ class Commands extends Page
      * or a confirmation to give.
      *
      * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>|null  $record
      */
-    private function needsModal(array $arguments): bool
+    private function needsModal(array $arguments, ?array $record = null): bool
     {
-        $definition = $this->definitionFor($arguments);
+        $definition = $this->definitionFor($arguments, $record);
 
         if ($definition === null) {
             return false;
@@ -193,11 +204,15 @@ class Commands extends Page
     }
 
     /**
+     * The command key arrives as an action argument when the action is called
+     * directly, and as the record id when the table renders it per row.
+     *
      * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>|null  $record
      */
-    private function definitionFor(array $arguments): ?CommandDefinition
+    private function definitionFor(array $arguments, ?array $record = null): ?CommandDefinition
     {
-        $key = $arguments['commandKey'] ?? null;
+        $key = $arguments['commandKey'] ?? $record['id'] ?? null;
 
         return is_string($key) ? app(CommandRegistry::class)->find($key) : null;
     }
@@ -208,11 +223,12 @@ class Commands extends Page
      * it cannot drift from the real argv.
      *
      * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>|null  $record
      * @return array<int, Component>
      */
-    private function schemaFor(array $arguments): array
+    private function schemaFor(array $arguments, ?array $record = null): array
     {
-        $definition = $this->definitionFor($arguments);
+        $definition = $this->definitionFor($arguments, $record);
 
         if ($definition === null) {
             return [];
@@ -225,18 +241,19 @@ class Commands extends Page
 
         $fields[] = Placeholder::make('preview')
             ->label('Command')
-            ->content(fn (Get $get): string => $this->preview($arguments, $get()));
+            ->content(fn (Get $get): string => $this->preview($arguments + ['commandKey' => $definition->key], $get()));
 
         return $fields;
     }
 
     /**
      * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>|null  $record
      * @return array<string, mixed>
      */
-    private function fillFor(array $arguments): array
+    private function fillFor(array $arguments, ?array $record = null): array
     {
-        $definition = $this->definitionFor($arguments);
+        $definition = $this->definitionFor($arguments, $record);
 
         return $definition === null ? [] : app(SchemaBuilder::class)->defaults($definition);
     }
@@ -250,10 +267,11 @@ class Commands extends Page
      *
      * @param  array<string, mixed>  $arguments
      * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>|null  $record
      */
-    private function execute(array $arguments, array $data): void
+    private function execute(array $arguments, array $data, ?array $record = null): void
     {
-        $definition = $this->definitionFor($arguments);
+        $definition = $this->definitionFor($arguments, $record);
 
         if ($definition === null) {
             $this->rejected('Unknown command.');
@@ -350,6 +368,85 @@ class Commands extends Page
             ->body($reason)
             ->danger()
             ->send();
+    }
+
+    /**
+     * The catalogue is a Filament table.
+     *
+     * Hand-written markup here meant hand-written Tailwind utilities, and those
+     * never reach the panel's compiled CSS — a plugin's views are outside the
+     * app's Tailwind sources, so the classes were silently dropped and the page
+     * rendered unstyled. Everything below is built from components whose styles
+     * already ship with Filament.
+     */
+    public function table(Table $table): Table
+    {
+        return $table
+            ->records(fn (array $filters): array => $this->rows($filters))
+            ->columns([
+                TextColumn::make('label')
+                    ->label('Command')
+                    ->weight(FontWeight::SemiBold)
+                    ->description(fn (array $record): ?string => $record['help'])
+                    ->searchable(),
+                TextColumn::make('run')
+                    ->label('Runs')
+                    ->fontFamily(FontFamily::Mono)
+                    ->size(TextColumnSize::ExtraSmall)
+                    ->color('gray')
+                    ->searchable(),
+                TextColumn::make('group')
+                    ->label('Group')
+                    ->badge()
+                    ->color('gray'),
+                TextColumn::make('mode')
+                    ->label('Mode')
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Queued' ? 'info' : 'gray'),
+            ])
+            ->filters([
+                SelectFilter::make('group')
+                    ->label('Group')
+                    ->options(fn (): array => array_combine(
+                        array_keys($this->categories()),
+                        array_keys($this->categories()),
+                    )),
+            ])
+            ->recordActions([$this->runAction()])
+            ->emptyStateHeading('No commands available')
+            ->emptyStateDescription('Commands you are allowed to run will appear here.')
+            ->emptyStateIcon('heroicon-o-command-line')
+            ->paginated(false);
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $filters
+     * @return array<string, array<string, mixed>>
+     */
+    private function rows(array $filters): array
+    {
+        $group = $filters['group']['value'] ?? null;
+
+        $rows = [];
+
+        foreach (app(Authorizer::class)->visibleTo() as $definition) {
+            $name = $definition->group ?? 'Ungrouped';
+
+            if (filled($group) && $group !== $name) {
+                continue;
+            }
+
+            $rows[$definition->key] = [
+                'id' => $definition->key,
+                'label' => $definition->label,
+                'help' => $definition->help,
+                'run' => $definition->run,
+                'group' => $name,
+                'mode' => $definition->isQueued() ? 'Queued' : 'Immediate',
+            ];
+        }
+
+        return $rows;
     }
 
     public function lastRun(): ?Run

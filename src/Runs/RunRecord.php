@@ -36,6 +36,15 @@ class RunRecord extends Model
     protected $guarded = [];
 
     /**
+     * Microseconds are part of the format, not just the column.
+     *
+     * Eloquent serialises dates with this format regardless of driver, and the
+     * default drops sub-second precision — which left two runs started in the
+     * same second with no defined order and made history sort at random.
+     */
+    protected $dateFormat = 'Y-m-d H:i:s.u';
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

@@ -99,6 +99,11 @@ return [
      */
     'abilities' => [
         'prune_history' => 'command-center:prune-history',
+        /*
+         | Whoever holds this can define what the panel is able to execute.
+         | Treat it as deploy access, not as an editor role.
+         */
+        'manage_commands' => 'command-center:manage-commands',
     ],
 
     /*

@@ -8,6 +8,7 @@ use Bityukov\CommandCenter\Filament\Clusters\CommandCenterCluster;
 use Bityukov\CommandCenter\Filament\Pages\Commands;
 use Bityukov\CommandCenter\Filament\Pages\History;
 use Bityukov\CommandCenter\Filament\Pages\RunView;
+use Bityukov\CommandCenter\Filament\Resources\CommandRecordResource;
 use Closure;
 use Filament\Contracts\Plugin;
 use Filament\Facades\Filament;
@@ -132,6 +133,10 @@ final class CommandCenterPlugin implements Plugin
         }
 
         $panel->pages($pages);
+
+        // Registered unconditionally; the resource's own canAccess() decides
+        // whether it appears, so enabling the source is the only switch.
+        $panel->resources([CommandRecordResource::class]);
     }
 
     public function boot(Panel $panel): void

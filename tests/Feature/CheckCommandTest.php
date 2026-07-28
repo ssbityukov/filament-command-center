@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Bityukov\CommandCenter\Sources\ConfigSource;
+use Bityukov\CommandCenter\Sources\DatabaseSource;
 use Illuminate\Support\Facades\Gate;
 
 it('passes with a clean configuration', function (): void {
@@ -229,4 +231,28 @@ it('does not warn about the sync queue when no command is queued', function (): 
     $this->artisan('command-center:check')
         ->doesntExpectOutputToContain('run inline inside the request')
         ->assertExitCode(0);
+});
+
+it('fails when the database source is enabled without a defined managing gate', function (): void {
+    config()->set('command-center.sources', [
+        ConfigSource::class,
+        DatabaseSource::class,
+    ]);
+    app()->forgetScopedInstances();
+
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('manage-commands')
+        ->assertExitCode(1);
+});
+
+it('passes when the database source is enabled and the managing gate exists', function (): void {
+    config()->set('command-center.sources', [
+        ConfigSource::class,
+        DatabaseSource::class,
+    ]);
+    app()->forgetScopedInstances();
+
+    Gate::define('command-center:manage-commands', fn (): bool => true);
+
+    $this->artisan('command-center:check')->assertExitCode(0);
 });

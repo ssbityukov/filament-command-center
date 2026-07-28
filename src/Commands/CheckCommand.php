@@ -9,6 +9,7 @@ use Bityukov\CommandCenter\Definitions\CommandDefinition;
 use Bityukov\CommandCenter\Definitions\CommandType;
 use Bityukov\CommandCenter\Definitions\Variables\ModelVariable;
 use Bityukov\CommandCenter\Definitions\Variables\SelectVariable;
+use Bityukov\CommandCenter\Sources\DatabaseSource;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Gate;
 use Throwable;
@@ -39,6 +40,8 @@ final class CheckCommand extends Command
             $this->checkDefinition($definition);
         }
 
+        $this->checkDatabaseSourceIsGuarded();
+
         foreach ($this->warnings as $warning) {
             $this->components->warn($warning);
         }
@@ -59,6 +62,27 @@ final class CheckCommand extends Command
         ));
 
         return $this->errors === [] ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * An error, not a warning. An unguarded editor lets whoever reaches it
+     * define what the panel executes, which is remote code execution with extra
+     * steps.
+     */
+    private function checkDatabaseSourceIsGuarded(): void
+    {
+        $sources = config('command-center.sources', []);
+
+        if (! in_array(DatabaseSource::class, is_array($sources) ? $sources : [], true)) {
+            return;
+        }
+
+        $ability = (string) config('command-center.abilities.manage_commands');
+
+        if (! $this->gateExists($ability)) {
+            $this->errors[] = "The database command source is enabled but the gate \"{$ability}\" is not "
+                .'defined, so the command editor is unguarded. Define it before shipping.';
+        }
     }
 
     private function checkDefinition(CommandDefinition $definition): void

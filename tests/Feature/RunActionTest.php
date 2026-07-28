@@ -225,3 +225,43 @@ it('redacts a redacted variable in the stored run but still passes it to the pro
     expect($run->input['payload'])->toBe('[redacted]')
         ->and($run->output)->toContain('0:secret-value');
 });
+
+it('runs a command with no inputs straight away instead of opening a modal', function (): void {
+    config()->set('command-center.commands.echo-value.variables', []);
+    config()->set('command-center.commands.echo-value.run', jobless());
+    app()->forgetScopedInstances();
+
+    // mountAction, not callAction: calling an action runs the whole cycle and
+    // ends unmounted either way, which would pass without proving anything.
+    livewire(Commands::class)
+        ->mountAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']))
+        ->assertActionNotMounted()
+        ->assertNotified();
+
+    expect(app(RunStore::class)->recent())->toHaveCount(1);
+});
+
+it('still opens a modal for a command that takes input', function (): void {
+    livewire(Commands::class)
+        ->mountAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']))
+        ->assertActionMounted();
+});
+
+it('still opens a modal for a command that asks for confirmation', function (): void {
+    config()->set('command-center.commands.echo-value.variables', []);
+    config()->set('command-center.commands.echo-value.confirm', true);
+    app()->forgetScopedInstances();
+
+    livewire(Commands::class)
+        ->mountAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']))
+        ->assertActionMounted();
+});
+
+function jobless(): string
+{
+    $path = sys_get_temp_dir().'/cc-noinput.php';
+
+    file_put_contents($path, '<?php echo "done";');
+
+    return phpBinaryWithoutWhitespace().' '.$path;
+}

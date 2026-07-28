@@ -105,12 +105,15 @@ class Commands extends Page
     {
         return Action::make('run')
             ->label('Run')
+            // A command with nothing to fill in and nothing to confirm runs on
+            // the first click. Filament opens a modal as soon as an action has
+            // a heading or a schema, so this says plainly when there is none.
+            ->modalHidden(fn (array $arguments): bool => ! $this->needsModal($arguments))
             ->modalHeading(function (array $arguments): string {
                 $definition = $this->definitionFor($arguments);
 
                 return $definition === null ? 'Run command' : $definition->label;
             })
-            ->modalSubmitActionLabel('Run')
             ->fillForm(fn (array $arguments): array => $this->fillFor($arguments))
             ->schema(fn (array $arguments): array => $this->schemaFor($arguments))
             ->requiresConfirmation(fn (array $arguments): bool => $this->definitionFor($arguments)?->confirm !== false)
@@ -119,6 +122,7 @@ class Commands extends Page
 
                 return is_string($confirm) ? $confirm : null;
             })
+            ->modalSubmitActionLabel('Run')
             ->action(fn (array $arguments, array $data) => $this->execute($arguments, $data));
     }
 
@@ -149,6 +153,25 @@ class Commands extends Page
         }
 
         return implode(' ', $argv);
+    }
+
+    /**
+     * A modal is only worth opening when it asks something: input to fill in,
+     * or a confirmation to give.
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    private function needsModal(array $arguments): bool
+    {
+        $definition = $this->definitionFor($arguments);
+
+        if ($definition === null) {
+            return false;
+        }
+
+        return $definition->confirm !== false
+            || $definition->variables !== []
+            || $definition->flags !== [];
     }
 
     /**

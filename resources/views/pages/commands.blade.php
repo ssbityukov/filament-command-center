@@ -1,8 +1,5 @@
 <x-filament-panels::page>
-    <x-filament::input.wrapper
-        prefix-icon="heroicon-m-magnifying-glass"
-        :valid="true"
-    >
+    <x-filament::input.wrapper prefix-icon="heroicon-m-magnifying-glass">
         <x-filament::input
             type="search"
             wire:model.live.debounce.300ms="search"
@@ -13,42 +10,49 @@
     @forelse ($this->groups() as $group => $definitions)
         <x-filament::section
             :heading="$group"
-            :description="count($definitions) . ' ' . str('command')->plural(count($definitions))"
+            :badge="count($definitions)"
             collapsible
             persist-collapsed
-            :id="'command-center-group-' . \Illuminate\Support\Str::slug($group)"
+            :id="'cc-group-' . \Illuminate\Support\Str::slug($group)"
         >
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <ul class="fi-ta-content divide-y divide-gray-200 dark:divide-white/10">
                 @foreach ($definitions as $definition)
-                    <x-filament::card class="flex h-full flex-col gap-3">
-                        <div class="flex items-start justify-between gap-3">
-                            <h3 class="fi-section-header-heading text-base font-semibold leading-6">
-                                {{ $definition->label }}
-                            </h3>
+                    <li class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                        {{-- Everything explanatory on the left --}}
+                        <div class="min-w-0 space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <x-filament::badge size="sm" color="gray">
+                                    {{ strtoupper($definition->type->value) }}
+                                </x-filament::badge>
 
-                            @if ($definition->isQueued())
-                                <x-filament::badge color="info" size="sm">Queued</x-filament::badge>
+                                <span class="truncate text-sm font-semibold">
+                                    {{ $definition->label }}
+                                </span>
+
+                                @if ($definition->isQueued())
+                                    <x-filament::badge size="sm" color="info">Queued</x-filament::badge>
+                                @endif
+                            </div>
+
+                            {{-- The command itself: what will actually run --}}
+                            <p class="truncate font-mono text-xs text-gray-500 dark:text-gray-400" title="{{ $definition->run }}">
+                                {{ $definition->run }}
+                            </p>
+
+                            @if ($definition->help)
+                                <p class="truncate text-sm text-gray-500 dark:text-gray-400">
+                                    {{ $definition->help }}
+                                </p>
                             @endif
                         </div>
 
-                        @if ($definition->help)
-                            <p class="fi-section-header-description text-sm">
-                                {{ $definition->help }}
-                            </p>
-                        @endif
-
-                        {{-- The command itself, not a type badge: an operator
-                             cares what will run, not how it is categorised. --}}
-                        <code class="fi-badge block truncate rounded-md px-2 py-1 font-mono text-xs" title="{{ $definition->run }}">
-                            {{ $definition->run }}
-                        </code>
-
-                        <div class="mt-auto pt-1">
+                        {{-- Action on the right --}}
+                        <div class="shrink-0">
                             {{ ($this->runAction)(['commandKey' => $definition->key]) }}
                         </div>
-                    </x-filament::card>
+                    </li>
                 @endforeach
-            </div>
+            </ul>
         </x-filament::section>
     @empty
         <x-filament::section>

@@ -301,10 +301,10 @@ it('paints the button red for a command that asks for confirmation', function ()
     expect($action->arguments(['commandKey' => 'echo-value'])->getColor())->toBe('danger');
 });
 
-it('gives an ordinary command the amber shade that carries a white label', function (): void {
+it('gives an ordinary command the warning colour', function (): void {
     $action = livewire(Commands::class)->instance()->runAction();
 
-    expect($action->arguments(['commandKey' => 'echo-value'])->getColor())->toBeArray();
+    expect($action->arguments(['commandKey' => 'echo-value'])->getColor())->toBe('warning');
 });
 
 it('paints the button blue for a queued command', function (): void {

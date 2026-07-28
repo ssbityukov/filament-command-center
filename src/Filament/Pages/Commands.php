@@ -23,7 +23,6 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Support\Colors\Color;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize as TextColumnSize;
@@ -131,34 +130,6 @@ class Commands extends Page implements HasTable
         return $groups;
     }
 
-    /**
-     * Amber, shifted deep enough to carry a white label.
-     *
-     * Filament picks the label colour by contrast, so the lighter amber shades
-     * get dark text and asking for white on those would fail contrast rather
-     * than look deliberate. Shifting the scale two steps keeps the same yellow
-     * family while making the shades Filament actually paints buttons with dark
-     * enough for white.
-     *
-     * Built from Filament's own palette rather than written out: the values are
-     * OKLCH in v5, and a hand-written RGB triplet is silently ignored.
-     *
-     * @return array<int, string>
-     */
-    private static function immediateColor(): array
-    {
-        $amber = Color::Amber;
-
-        $shades = array_keys($amber);
-        $shifted = [];
-
-        foreach ($shades as $index => $shade) {
-            $shifted[$shade] = $amber[$shades[min($index + 2, count($shades) - 1)]];
-        }
-
-        return $shifted;
-    }
-
     public function runAction(): Action
     {
         return Action::make('run')
@@ -170,14 +141,14 @@ class Commands extends Page implements HasTable
             // The colour says what kind of run this is before you click:
             // red for anything the definition marked as needing confirmation,
             // blue for work that goes to a worker, primary for the rest.
-            ->color(function (array $arguments, ?array $record = null): string|array {
+            ->color(function (array $arguments, ?array $record = null): string {
                 $definition = $this->definitionFor($arguments, $record);
 
                 return match (true) {
-                    $definition === null => self::immediateColor(),
+                    $definition === null => 'warning',
                     $definition->confirm !== false => 'danger',
                     $definition->isQueued() => 'info',
-                    default => self::immediateColor(),
+                    default => 'warning',
                 };
             })
             // A command with nothing to fill in and nothing to confirm runs on

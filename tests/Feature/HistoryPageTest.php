@@ -68,7 +68,9 @@ it('filters by command key', function (): void {
         ->assertCountTableRecords(1);
 });
 
-it('deletes a single run', function (): void {
+it('deletes a single run when the prune ability is granted', function (): void {
+    Gate::define('command-center:prune-history', fn (): bool => true);
+
     $run = historyRun('ok');
 
     livewire(History::class)->callTableAction('delete', $run->id);

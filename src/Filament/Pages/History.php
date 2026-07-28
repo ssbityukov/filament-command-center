@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bityukov\CommandCenter\Filament\Pages;
 
+use Bityukov\CommandCenter\Authorization\RunVisibility;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
 use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
@@ -87,7 +88,16 @@ class History extends Page implements HasTable
                     ->icon('heroicon-m-trash')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->action(fn (array $record) => app(RunStore::class)->forget((string) $record['id'])),
+                    // Deleting a run destroys an audit record, so it needs the
+                    // same ability as pruning the lot. Without this, any user
+                    // who can open the page could erase history one row at a
+                    // time while the guarded prune action sat next to it.
+                    ->visible(fn (): bool => $this->canPrune())
+                    ->action(function (array $record): void {
+                        abort_unless($this->canPrune(), 403);
+
+                        app(RunStore::class)->forget((string) $record['id']);
+                    }),
             ]);
     }
 
@@ -97,8 +107,17 @@ class History extends Page implements HasTable
             ->label('Prune history')
             ->color('danger')
             ->requiresConfirmation()
-            ->visible(fn (): bool => Gate::allows((string) config('command-center.abilities.prune_history')))
-            ->action(fn () => app(RunStore::class)->flush());
+            ->visible(fn (): bool => $this->canPrune())
+            ->action(function (): void {
+                abort_unless($this->canPrune(), 403);
+
+                app(RunStore::class)->flush();
+            });
+    }
+
+    private function canPrune(): bool
+    {
+        return Gate::allows((string) config('command-center.abilities.prune_history'));
     }
 
     /**
@@ -132,7 +151,13 @@ class History extends Page implements HasTable
 
         $rows = [];
 
-        foreach (app(RunStore::class)->recent((int) config('command-center.history.max', 100)) as $run) {
+        // Filtered by visibility first: a run carries the argv and output of the
+        // command it ran, so it is only for users authorized for that command.
+        $visible = app(RunVisibility::class)->filter(
+            app(RunStore::class)->recent((int) config('command-center.history.max', 100)),
+        );
+
+        foreach ($visible as $run) {
             if (filled($state) && $run->state->value !== $state) {
                 continue;
             }
@@ -171,7 +196,11 @@ class History extends Page implements HasTable
     {
         $options = [];
 
-        foreach (app(RunStore::class)->recent((int) config('command-center.history.max', 100)) as $run) {
+        $visible = app(RunVisibility::class)->filter(
+            app(RunStore::class)->recent((int) config('command-center.history.max', 100)),
+        );
+
+        foreach ($visible as $run) {
             $options[$run->commandKey] = $run->label;
         }
 

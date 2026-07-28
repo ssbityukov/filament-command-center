@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bityukov\CommandCenter\Filament\Pages;
 
+use Bityukov\CommandCenter\Authorization\RunVisibility;
 use Bityukov\CommandCenter\CommandRegistry;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
 use Bityukov\CommandCenter\Runs\Run;
@@ -59,9 +60,22 @@ class RunView extends Page
         return '/runs/{run}';
     }
 
+    /**
+     * A run is visible only to someone who may run the command it came from.
+     *
+     * Run records carry the full argv and the command's output, so exposing one
+     * to a user who is not authorized for that command would hand them the
+     * result of a privileged command through the back door. A run whose command
+     * no longer exists in any source is treated as visible: there is no ability
+     * left to check, and hiding history when an allow-list entry is removed
+     * would quietly erase the audit trail.
+     */
     public function mount(string $run): void
     {
-        abort_if(app(RunStore::class)->find($run) === null, 404);
+        $record = app(RunStore::class)->find($run);
+
+        abort_if($record === null, 404);
+        abort_unless(app(RunVisibility::class)->allows($record), 404);
 
         $this->runId = $run;
     }

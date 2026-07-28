@@ -145,9 +145,12 @@ final class CommandCenterPlugin implements Plugin
             History::navigationGroup($group);
             CommandRecordResource::navigationGroup($group);
 
-            Commands::navigationSort($this->navigationSort ?? 1);
-            History::navigationSort(($this->navigationSort ?? 1) + 1);
-            CommandRecordResource::navigationSort(($this->navigationSort ?? 1) + 2);
+            // Running comes first, defining second, looking back last.
+            $base = $this->navigationSort ?? 1;
+
+            Commands::navigationSort($base);
+            CommandRecordResource::navigationSort($base + 1);
+            History::navigationSort($base + 2);
         }
 
         $pages = [Commands::class, History::class, RunView::class];

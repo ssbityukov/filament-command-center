@@ -106,3 +106,12 @@ it('keeps the command editor in the same sidebar group as the pages', function (
     expect(CommandRecordResource::getNavigationGroup())
         ->toBe(Commands::getNavigationGroup());
 });
+
+it('orders the sidebar as commands, editor, history', function (): void {
+    CommandCenterPlugin::make()->register(Filament::getPanel('test'));
+
+    expect(Commands::getNavigationSort())
+        ->toBeLessThan(CommandRecordResource::getNavigationSort())
+        ->and(CommandRecordResource::getNavigationSort())
+        ->toBeLessThan(History::getNavigationSort());
+});

@@ -133,6 +133,11 @@ class Commands extends Page implements HasTable
     {
         return Action::make('run')
             ->label('Run')
+            // A filled button with an icon, not the link a table action renders
+            // by default: running the command is the point of the row.
+            ->button()
+            ->icon('heroicon-m-play')
+            ->color('primary')
             // A command with nothing to fill in and nothing to confirm runs on
             // the first click. Filament opens a modal as soon as an action has
             // a heading or a schema, so this says plainly when there is none.

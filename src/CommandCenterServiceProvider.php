@@ -50,6 +50,16 @@ class CommandCenterServiceProvider extends PackageServiceProvider
             $app->make('cache')->store(config('command-center.history.store')),
         ));
 
+        $this->app->singleton(Execution\RunProgress::class, fn ($app): Execution\RunProgress => new Execution\RunProgress(
+            $app->make('cache')->store(config('command-center.history.store')),
+        ));
+
+        $this->app->singleton(Execution\Cancellation::class, fn ($app): Execution\Cancellation => new Execution\Cancellation(
+            $app->make('cache')->store(config('command-center.history.store')),
+        ));
+
+        $this->app->singleton(Execution\ProgressParser::class);
+
         $this->app->singleton(Authorization\Authorizer::class);
 
         $this->app->singleton(Execution\ArgvBuilder::class);

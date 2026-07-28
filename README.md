@@ -48,6 +48,19 @@ Publish the config:
 php artisan vendor:publish --tag=command-center-config
 ```
 
+Everything publishable, if you need the rest:
+
+| Tag | What it gives you |
+|---|---|
+| `command-center-config` | `config/command-center.php` — where commands are defined |
+| `command-center-migrations` | The `runs` and `commands` tables, for the database history driver and the database source |
+| `command-center-views` | The Blade views, if you want to change the markup |
+
+Migrations are published rather than run automatically: an app using the cache
+history driver needs no tables, and a package that creates them on install has
+outstayed its welcome. Publishing an existing file is skipped rather than
+overwritten — pass `--force` if you mean to replace it.
+
 ## Your first command
 
 ```php

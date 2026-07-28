@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 use Bityukov\CommandCenter\Filament\Pages\Commands;
 use Bityukov\CommandCenter\Filament\SchemaBuilder;
+use Bityukov\CommandCenter\Jobs\RunCommandJob;
 use Bityukov\CommandCenter\Runs\RunState;
 use Bityukov\CommandCenter\Runs\RunStore;
 use Bityukov\CommandCenter\Tests\Fixtures\TestUser;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Queue;
 use Symfony\Component\Process\PhpExecutableFinder;
 
 use function Pest\Livewire\livewire;
@@ -114,12 +116,19 @@ it('refuses a command key that exists in no source', function (): void {
     expect(app(RunStore::class)->recent())->toBe([]);
 });
 
-it('refuses a queued command until Plan 3 lands', function (): void {
+it('queues a queued command instead of running it inline', function (): void {
+    Queue::fake();
+
     livewire(Commands::class)
         ->callAction(TestAction::make('run')->arguments(['commandKey' => 'queued']))
         ->assertNotified();
 
-    expect(app(RunStore::class)->recent())->toBe([]);
+    $runs = app(RunStore::class)->recent();
+
+    expect($runs)->toHaveCount(1)
+        ->and($runs[0]->state)->toBe(RunState::Queued);
+
+    Queue::assertPushed(RunCommandJob::class);
 });
 
 it('validates a required variable before running anything', function (): void {

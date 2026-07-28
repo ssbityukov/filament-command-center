@@ -8,11 +8,11 @@ use Bityukov\CommandCenter\Authorization\Authorizer;
 use Bityukov\CommandCenter\CommandRegistry;
 use Bityukov\CommandCenter\Definitions\CommandDefinition;
 use Bityukov\CommandCenter\Execution\ArgvBuilder;
-use Bityukov\CommandCenter\Execution\CommandRunner;
+use Bityukov\CommandCenter\Execution\RunDispatcher;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
 use Bityukov\CommandCenter\Filament\SchemaBuilder;
 use Bityukov\CommandCenter\Runs\Run;
-use Bityukov\CommandCenter\Runs\RunStore;
+use Bityukov\CommandCenter\Runs\RunState;
 use Filament\Actions\Action;
 use Filament\Clusters\Cluster;
 use Filament\Facades\Filament;
@@ -212,14 +212,11 @@ class Commands extends Page
             return;
         }
 
-        if ($definition->isQueued()) {
-            $this->rejected('This command runs on a queue, which is not available yet.');
-
-            return;
-        }
-
         try {
-            $run = app(CommandRunner::class)->run(
+            // The dispatcher owns rate limiting, the concurrency lock, the
+            // queue-or-inline decision and recording the run. The page decides
+            // none of that.
+            $run = app(RunDispatcher::class)->dispatch(
                 $definition,
                 $this->toInput($definition, $data),
                 Auth::id(),
@@ -229,8 +226,6 @@ class Commands extends Page
 
             return;
         }
-
-        app(RunStore::class)->put($run);
 
         $this->notifyOf($run);
 
@@ -283,9 +278,12 @@ class Commands extends Page
     {
         $notification = Notification::make()->title($run->label);
 
-        $run->exitCode === 0
-            ? $notification->success()->body('Finished successfully.')
-            : $notification->danger()->body($run->error ?? 'Exit code '.($run->exitCode ?? 'unknown').'.');
+        match (true) {
+            $run->state === RunState::Queued => $notification->info()->body('Queued.'),
+            $run->state === RunState::Rejected => $notification->danger()->body($run->error ?? 'Rejected.'),
+            $run->exitCode === 0 => $notification->success()->body('Finished successfully.'),
+            default => $notification->danger()->body($run->error ?? 'Exit code '.($run->exitCode ?? 'unknown').'.'),
+        };
 
         $notification->send();
     }

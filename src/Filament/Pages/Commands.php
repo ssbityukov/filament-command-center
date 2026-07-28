@@ -137,7 +137,19 @@ class Commands extends Page implements HasTable
             // by default: running the command is the point of the row.
             ->button()
             ->icon('heroicon-m-play')
-            ->color('primary')
+            // The colour says what kind of run this is before you click:
+            // red for anything the definition marked as needing confirmation,
+            // blue for work that goes to a worker, primary for the rest.
+            ->color(function (array $arguments, ?array $record = null): string {
+                $definition = $this->definitionFor($arguments, $record);
+
+                return match (true) {
+                    $definition === null => 'primary',
+                    $definition->confirm !== false => 'danger',
+                    $definition->isQueued() => 'info',
+                    default => 'primary',
+                };
+            })
             // A command with nothing to fill in and nothing to confirm runs on
             // the first click. Filament opens a modal as soon as an action has
             // a heading or a schema, so this says plainly when there is none.

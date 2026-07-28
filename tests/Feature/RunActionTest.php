@@ -291,3 +291,24 @@ it('filters the catalogue by category', function (): void {
 
     expect($page->instance()->groups())->toBe([]);
 });
+
+it('paints the button red for a command that asks for confirmation', function (): void {
+    config()->set('command-center.commands.echo-value.confirm', 'Sure?');
+    app()->forgetScopedInstances();
+
+    $action = livewire(Commands::class)->instance()->runAction();
+
+    expect($action->arguments(['commandKey' => 'echo-value'])->getColor())->toBe('danger');
+});
+
+it('leaves an ordinary command on the primary colour', function (): void {
+    $action = livewire(Commands::class)->instance()->runAction();
+
+    expect($action->arguments(['commandKey' => 'echo-value'])->getColor())->toBe('primary');
+});
+
+it('paints the button blue for a queued command', function (): void {
+    $action = livewire(Commands::class)->instance()->runAction();
+
+    expect($action->arguments(['commandKey' => 'queued'])->getColor())->toBe('info');
+});

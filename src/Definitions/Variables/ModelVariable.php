@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Bityukov\CommandCenter\Definitions\Variables;
 
+use Bityukov\CommandCenter\Exceptions\UnknownModelValueException;
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 final class ModelVariable extends Variable
 {
@@ -59,6 +62,67 @@ final class ModelVariable extends Variable
     public function fieldType(): string
     {
         return 'model';
+    }
+
+    /**
+     * The variable's own query, with modifyQueryUsing applied.
+     *
+     * Both the option list and resolution go through this single query, so the
+     * set a user is shown and the set they may submit cannot drift apart.
+     */
+    public function optionsQuery(): Builder
+    {
+        if ($this->model === '') {
+            throw UnknownModelValueException::missingModel($this->name);
+        }
+
+        /** @var Model $model */
+        $model = new $this->model;
+
+        $query = $model->newQuery();
+
+        if ($this->modifyQueryUsing !== null) {
+            $query = ($this->modifyQueryUsing)($query) ?? $query;
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return array<array-key, string>
+     */
+    public function options(): array
+    {
+        return $this->optionsQuery()
+            ->pluck($this->titleAttribute, $this->valueAttribute)
+            ->map(fn (mixed $title): string => (string) $title)
+            ->all();
+    }
+
+    /**
+     * Re-resolve a submitted value through the variable's own query.
+     *
+     * Validating this in the UI would leave the Livewire boundary open: a
+     * crafted request can name any value. A scoped select must therefore reject
+     * an out-of-scope record here, where every caller goes through.
+     */
+    public function resolve(mixed $value): ?string
+    {
+        $resolved = parent::resolve($value);
+
+        if ($resolved === null) {
+            return null;
+        }
+
+        $exists = $this->optionsQuery()
+            ->where($this->valueAttribute, $resolved)
+            ->exists();
+
+        if (! $exists) {
+            throw UnknownModelValueException::for($this->name, $resolved);
+        }
+
+        return $resolved;
     }
 
     private function rebuild(

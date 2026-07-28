@@ -3,4 +3,4 @@ parameters:
     paths:
         - src
     treatPhpDocTypesAsCertain: false
-    phpVersion: 80300
+    phpVersion: 80400

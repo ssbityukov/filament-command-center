@@ -21,7 +21,10 @@ package's own. Thanks to its authors.
 
 ## Requirements
 
-PHP 8.3+, Laravel 11/12/13, Filament 5.
+PHP 8.4+, Laravel 12 or 13, Filament 5.
+
+The suite runs against each of those combinations in CI. Older versions are not
+listed because they are not tested, not because they are known to break.
 
 ## Installation
 

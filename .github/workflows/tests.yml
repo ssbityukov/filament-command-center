@@ -1,0 +1,42 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Only what the suite is actually run against. A row here is a promise
+        # that the version works; adding one without running it is how a package
+        # ends up claiming support it has never had.
+        php: ['8.4', '8.5']
+        laravel: ['12.*', '13.*']
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          composer require "illuminate/contracts:${{ matrix.laravel }}" --no-interaction --no-update
+          composer update --prefer-dist --no-interaction
+
+      - name: Tests
+        run: vendor/bin/pest --compact
+
+      - name: No shell execution primitives in src
+        run: ./bin/assert-no-shell-commandline.sh
+
+      - name: No Filament outside the UI layer
+        run: ./bin/assert-core-has-no-filament.sh

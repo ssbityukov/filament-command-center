@@ -49,6 +49,20 @@ return [
     ],
 
     /*
+     | Run history.
+     |
+     | The cache driver needs no migration, which keeps installation to a single
+     | composer require. It is capped and TTL-bounded, so treat it as a recent
+     | activity log rather than a permanent audit trail — a cache flush clears
+     | it. Plan 4 adds a durable database driver.
+     */
+    'history' => [
+        'max' => 100,
+        'ttl_hours' => 168,
+        'store' => null,
+    ],
+
+    /*
      | Command definitions, keyed by a unique slug.
      */
     'commands' => [],

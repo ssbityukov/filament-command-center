@@ -40,6 +40,12 @@ class CommandCenterServiceProvider extends PackageServiceProvider
             return new CommandRegistry($sources);
         });
 
+        $this->app->scoped(Runs\RunStore::class, fn ($app): Runs\CacheRunStore => new Runs\CacheRunStore(
+            cache: $app->make('cache')->store(config('command-center.history.store')),
+            max: (int) config('command-center.history.max', 100),
+            ttlHours: (int) config('command-center.history.ttl_hours', 168),
+        ));
+
         $this->app->singleton(Authorization\Authorizer::class);
 
         $this->app->singleton(Execution\ArgvBuilder::class);

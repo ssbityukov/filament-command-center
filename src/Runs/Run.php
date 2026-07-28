@@ -15,7 +15,7 @@ final readonly class Run
      * leaves this field alone". Out of range for a percentage, so it can never
      * collide with a real value.
      */
-    private const CLEAR_PROGRESS = PHP_INT_MIN;
+    private const int CLEAR_PROGRESS = PHP_INT_MIN;
 
     /**
      * @param  array<string, mixed>  $input

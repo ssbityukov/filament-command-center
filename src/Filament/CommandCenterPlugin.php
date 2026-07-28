@@ -8,6 +8,7 @@ use Bityukov\CommandCenter\Filament\Clusters\CommandCenterCluster;
 use Bityukov\CommandCenter\Filament\Pages\Commands;
 use Closure;
 use Filament\Contracts\Plugin;
+use Filament\Facades\Filament;
 use Filament\Panel;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,6 +30,22 @@ final class CommandCenterPlugin implements Plugin
     public function getId(): string
     {
         return 'command-center';
+    }
+
+    /**
+     * The plugin instance registered on the panel in play.
+     *
+     * Page access is checked outside a panel request too — in tests, and by
+     * navigation builders — so this falls back to the default panel rather than
+     * silently reporting "no plugin, allow everything".
+     */
+    public static function forCurrentPanel(): ?self
+    {
+        $panel = Filament::getCurrentPanel() ?? Filament::getDefaultPanel();
+
+        $plugin = $panel->hasPlugin('command-center') ? $panel->getPlugin('command-center') : null;
+
+        return $plugin instanceof self ? $plugin : null;
     }
 
     public function cluster(bool $cluster = true): static

@@ -39,6 +39,18 @@ class RunView extends Page
      */
     protected static ?string $cluster = null;
 
+    /**
+     * Redeclared for the same reason as $cluster: Filament declares these on its
+     * base Page, and a subclass that assigns through static:: writes to that
+     * shared storage — which moved every page in the panel, Dashboard included,
+     * into this plugin's group.
+     */
+    protected static string|\UnitEnum|null $navigationGroup = null;
+
+    protected static ?int $navigationSort = null;
+
+    protected static ?string $navigationLabel = null;
+
     protected string $view = 'command-center::pages.run';
 
     /**

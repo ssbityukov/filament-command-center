@@ -10,7 +10,6 @@ use Bityukov\CommandCenter\Definitions\CommandDefinition;
 use Bityukov\CommandCenter\Execution\ArgvBuilder;
 use Bityukov\CommandCenter\Execution\RunDispatcher;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
-use Bityukov\CommandCenter\Filament\Concerns\HasCommandCenterSubNavigation;
 use Bityukov\CommandCenter\Filament\SchemaBuilder;
 use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
@@ -27,8 +26,6 @@ use Throwable;
 
 class Commands extends Page
 {
-    use HasCommandCenterSubNavigation;
-
     protected static ?string $slug = 'command-center/commands';
 
     protected static ?string $title = 'Commands';

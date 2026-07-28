@@ -27,14 +27,12 @@ final class CommandCenterPlugin implements Plugin
     private bool $cluster = false;
 
     /**
-     * No group of our own by default.
+     * The pages live under one collapsible sidebar group.
      *
-     * A plugin that invents a sidebar group pushes itself out of the panel's
-     * own navigation and into a collapsible block beside it. The pages belong
-     * in the same list as everything else; an app that wants them grouped says
-     * so with ->group().
+     * Pass null to ->group() to put them at the top level of the panel's
+     * navigation instead.
      */
-    private ?string $group = null;
+    private ?string $group = 'Command Center';
 
     private ?Closure $authorizeUsing = null;
 
@@ -140,10 +138,11 @@ final class CommandCenterPlugin implements Plugin
             // entries missing reads as two unrelated features.
             $group = $this->navigationGroup ?? $this->group;
 
-            if ($group !== null) {
-                Commands::navigationGroup($group);
-                History::navigationGroup($group);
-            }
+            // Assigned unconditionally, null included: these are static
+            // properties, so skipping the assignment would leave whatever a
+            // previous registration put there.
+            Commands::navigationGroup($group);
+            History::navigationGroup($group);
 
             Commands::navigationSort($this->navigationSort ?? 1);
             History::navigationSort(($this->navigationSort ?? 1) + 1);

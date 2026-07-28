@@ -23,10 +23,16 @@ it('registers the commands page with the panel', function (): void {
     expect(Filament::getPanel('test')->getPages())->toContain(Commands::class);
 });
 
-it('puts its pages in the panel navigation without inventing a group', function (): void {
+it('puts both pages under one collapsible sidebar group', function (): void {
     expect(Commands::getCluster())->toBeNull()
-        ->and(Commands::getNavigationGroup())->toBeNull()
-        ->and(History::getNavigationGroup())->toBeNull();
+        ->and(Commands::getNavigationGroup())->toBe('Command Center')
+        ->and(History::getNavigationGroup())->toBe('Command Center');
+});
+
+it('drops the group when an app asks for top-level pages', function (): void {
+    CommandCenterPlugin::make()->group(null)->register(Filament::getPanel('test'));
+
+    expect(Commands::getNavigationGroup())->toBeNull();
 });
 
 it('gives each page an icon so it looks like the rest of the sidebar', function (): void {

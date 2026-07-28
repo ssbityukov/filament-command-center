@@ -6,6 +6,7 @@ namespace Bityukov\CommandCenter\Filament\Pages;
 
 use Bityukov\CommandCenter\Authorization\RunVisibility;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
+use Bityukov\CommandCenter\Filament\Concerns\HasCommandCenterSubNavigation;
 use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
 use Bityukov\CommandCenter\Runs\RunStore;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Gate;
 
 class History extends Page implements HasTable
 {
+    use HasCommandCenterSubNavigation;
     use InteractsWithTable;
 
     protected static ?string $slug = 'history';

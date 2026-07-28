@@ -17,7 +17,16 @@ use Illuminate\Support\Facades\Auth;
 
 final class CommandCenterPlugin implements Plugin
 {
-    private bool $cluster = true;
+    /**
+     * Flat pages under a shared navigation group by default.
+     *
+     * A cluster collapses the whole feature into one sidebar entry and hides
+     * the pages behind sub-navigation. Grouping keeps every page visible in the
+     * sidebar, which is what an operator wants from a control panel.
+     */
+    private bool $cluster = false;
+
+    private string $group = 'Command Center';
 
     private ?Closure $authorizeUsing = null;
 
@@ -76,6 +85,16 @@ final class CommandCenterPlugin implements Plugin
         return $this;
     }
 
+    /**
+     * The sidebar group the pages sit under when they are not clustered.
+     */
+    public function group(string $group): static
+    {
+        $this->group = $group;
+
+        return $this;
+    }
+
     public function navigationSort(?int $sort): static
     {
         $this->navigationSort = $sort;
@@ -109,13 +128,15 @@ final class CommandCenterPlugin implements Plugin
             Commands::navigationLabel('Commands');
             History::navigationLabel('Run history');
 
-            if ($this->navigationGroup !== null) {
-                Commands::navigationGroup($this->navigationGroup);
-            }
+            // Applied to every page, not just the first: a group with one of its
+            // entries missing reads as two unrelated features.
+            $group = $this->navigationGroup ?? $this->group;
 
-            if ($this->navigationSort !== null) {
-                Commands::navigationSort($this->navigationSort);
-            }
+            Commands::navigationGroup($group);
+            History::navigationGroup($group);
+
+            Commands::navigationSort($this->navigationSort ?? 1);
+            History::navigationSort(($this->navigationSort ?? 1) + 1);
         }
 
         $pages = [Commands::class, History::class, RunView::class];

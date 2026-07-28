@@ -109,5 +109,86 @@ return [
     /*
      | Command definitions, keyed by a unique slug.
      */
+    /*
+     | Command definitions, keyed by a unique slug.
+     |
+     | Empty on purpose. This is an allow-list, and a package that ships a
+     | populated one decides for you what your panel can execute — including
+     | things like migrate. You opt in, command by command.
+     |
+     | A starter set for a typical Laravel app is below. Uncomment what you
+     | actually want, then run `php artisan command-center:check`, which will
+     | tell you if anything is misconfigured before your users find out.
+     |
+     | 'commands' => [
+     |     'cache-clear' => [
+     |         'run' => 'cache:clear',
+     |         'label' => 'Clear application cache',
+     |         'group' => 'Cache',
+     |         'timeout' => 30,
+     |     ],
+     |     'config-clear' => [
+     |         'run' => 'config:clear',
+     |         'label' => 'Clear config cache',
+     |         'group' => 'Cache',
+     |         'timeout' => 30,
+     |     ],
+     |     'view-clear' => [
+     |         'run' => 'view:clear',
+     |         'label' => 'Clear compiled views',
+     |         'group' => 'Cache',
+     |         'timeout' => 30,
+     |     ],
+     |     'optimize' => [
+     |         'run' => 'optimize',
+     |         'label' => 'Optimize',
+     |         'group' => 'Optimisation',
+     |         'timeout' => 120,
+     |         'queue' => true,
+     |     ],
+     |     'optimize-clear' => [
+     |         'run' => 'optimize:clear',
+     |         'label' => 'Clear all caches',
+     |         'group' => 'Optimisation',
+     |         'timeout' => 120,
+     |         'queue' => true,
+     |     ],
+     |     'queue-restart' => [
+     |         'run' => 'queue:restart',
+     |         'label' => 'Restart queue workers',
+     |         'group' => 'Queue',
+     |         'timeout' => 30,
+     |     ],
+     |     'queue-failed' => [
+     |         'run' => 'queue:failed',
+     |         'label' => 'List failed jobs',
+     |         'group' => 'Queue',
+     |         'timeout' => 30,
+     |     ],
+     |     'storage-link' => [
+     |         'run' => 'storage:link',
+     |         'label' => 'Link storage directory',
+     |         'group' => 'Maintenance',
+     |         'timeout' => 30,
+     |     ],
+     |     'about' => [
+     |         'run' => 'about',
+     |         'label' => 'Application overview',
+     |         'group' => 'Diagnostics',
+     |         'timeout' => 30,
+     |     ],
+     |
+     |     // Destructive. Give it a gate and a confirmation, or leave it out.
+     |     'migrate' => [
+     |         'run' => 'migrate --force',
+     |         'label' => 'Run migrations',
+     |         'group' => 'Maintenance',
+     |         'timeout' => 300,
+     |         'queue' => true,
+     |         'ability' => 'run-migrations',
+     |         'confirm' => 'This applies pending migrations to the live database. Continue?',
+     |     ],
+     | ],
+     */
     'commands' => [],
 ];

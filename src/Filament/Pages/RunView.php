@@ -10,6 +10,7 @@ use Bityukov\CommandCenter\Execution\Cancellation;
 use Bityukov\CommandCenter\Execution\OutputBuffer;
 use Bityukov\CommandCenter\Execution\RunProgress;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
+use Bityukov\CommandCenter\Filament\Concerns\HasCommandCenterSubNavigation;
 use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
 use Bityukov\CommandCenter\Runs\RunStore;
@@ -24,6 +25,8 @@ use Livewire\Attributes\Computed;
  */
 class RunView extends Page
 {
+    use HasCommandCenterSubNavigation;
+
     protected static ?string $slug = 'runs';
 
     protected static bool $isDiscovered = false;

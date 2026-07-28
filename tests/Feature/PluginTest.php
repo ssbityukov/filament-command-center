@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Bityukov\CommandCenter\Filament\Clusters\CommandCenterCluster;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
 use Bityukov\CommandCenter\Filament\Pages\Commands;
+use Bityukov\CommandCenter\Filament\Pages\History;
 use Bityukov\CommandCenter\Tests\Fixtures\TestUser;
 use Filament\Facades\Filament;
 
@@ -21,8 +22,22 @@ it('registers the commands page with the panel', function (): void {
     expect(Filament::getPanel('test')->getPages())->toContain(Commands::class);
 });
 
-it('puts pages in the cluster by default', function (): void {
+it('keeps pages flat under a sidebar group by default', function (): void {
+    expect(Commands::getCluster())->toBeNull()
+        ->and(Commands::getNavigationGroup())->toBe('Command Center')
+        ->and(History::getNavigationGroup())->toBe('Command Center');
+});
+
+it('puts pages in the cluster when clustering is asked for', function (): void {
+    CommandCenterPlugin::make()->cluster()->register(Filament::getPanel('test'));
+
     expect(Commands::getCluster())->toBe(CommandCenterCluster::class);
+});
+
+it('renames the sidebar group', function (): void {
+    CommandCenterPlugin::make()->group('Operations')->register(Filament::getPanel('test'));
+
+    expect(Commands::getNavigationGroup())->toBe('Operations');
 });
 
 it('allows access when no authorize callback is set', function (): void {

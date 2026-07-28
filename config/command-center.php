@@ -43,9 +43,14 @@ return [
     /*
      | Command sources, resolved from the container in order. Later sources
      | override earlier ones when two define the same command key.
+     |
+     | DatabaseSource is opt-in and deliberately not enabled here: anyone who
+     | can write its table can run anything the PHP process can. Enable it only
+     | with the editor guarded by a strong ability.
      */
     'sources' => [
         ConfigSource::class,
+        // \Bityukov\CommandCenter\Sources\DatabaseSource::class,
     ],
 
     /*

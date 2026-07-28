@@ -17,6 +17,7 @@ class CommandCenterServiceProvider extends PackageServiceProvider
             ->hasConfigFile('command-center')
             ->hasViews('command-center')
             ->hasMigration('create_command_center_runs_table')
+            ->hasMigration('create_command_center_commands_table')
             ->hasCommand(Commands\CheckCommand::class)
             ->hasCommand(Commands\PruneCommand::class);
     }
@@ -67,6 +68,10 @@ class CommandCenterServiceProvider extends PackageServiceProvider
         ));
 
         $this->app->singleton(Execution\ProgressParser::class);
+
+        $this->app->bind(Sources\DatabaseSource::class, fn (): Sources\DatabaseSource => new Sources\DatabaseSource(
+            defaultTimeout: (int) config('command-center.default_timeout', 30),
+        ));
 
         $this->app->singleton(Authorization\Authorizer::class);
 

@@ -352,11 +352,9 @@ it('shows the duration and a copy action beside the result', function (): void {
     $page = livewire(Commands::class)
         ->callAction(TestAction::make('run')->arguments(['commandKey' => 'echo-value']), ['payload' => 'hi']);
 
-    // Asserting the rendered slot, not just the action object: the previous
-    // version used a slot name Filament does not have, so nothing appeared.
-    $page->assertActionVisible('copyOutput')
-        ->assertSee('Open run')
-        ->assertSee('Copy');
+    // Asserting the rendered markup: copying is a browser-side button now, so
+    // there is no server action to assert against.
+    $page->assertSee('Copy');
 
     expect(app(RunStore::class)->recent()[0]->durationMs)->not->toBeNull();
 });

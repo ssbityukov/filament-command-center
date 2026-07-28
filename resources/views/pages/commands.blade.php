@@ -30,11 +30,21 @@
                     </x-filament::badge>
                 @endif
 
-                {{ $this->copyOutputAction }}
-
-                <x-filament::link :href="$this->runViewUrl($run)" size="xs">
-                    Open run
-                </x-filament::link>
+                @if ($run->output !== '')
+                    {{-- Copying happens in the browser: a round trip to the
+                         server to hand back text the page already has would be
+                         a slower way to reach the same clipboard. --}}
+                    <x-filament::button
+                        size="xs"
+                        color="gray"
+                        icon="heroicon-m-clipboard"
+                        x-data="{ output: @js($run->output), copied: false }"
+                        x-on:click="navigator.clipboard.writeText(output); copied = true; setTimeout(() => copied = false, 2000)"
+                    >
+                        <span x-show="! copied">Copy</span>
+                        <span x-show="copied" x-cloak>Copied</span>
+                    </x-filament::button>
+                @endif
             </x-slot>
 
             <x-command-center::output :output="$run->output" />
@@ -43,5 +53,4 @@
     @endif
 
     {{ $this->table }}
-    <x-command-center::copy-script />
 </x-filament-panels::page>

@@ -501,34 +501,6 @@ class Commands extends Page implements HasTable
         return str_contains($haystack, mb_strtolower($term));
     }
 
-    /**
-     * Copy the output without leaving the page.
-     *
-     * The clipboard write happens in the browser through Filament's own
-     * copyable support rather than through a round trip.
-     */
-    public function copyOutputAction(): Action
-    {
-        return Action::make('copyOutput')
-            ->label('Copy')
-            ->icon('heroicon-m-clipboard')
-            ->link()
-            ->size('xs')
-            ->color('gray')
-            ->visible(function (): bool {
-                $run = $this->lastRun();
-
-                return $run !== null && $run->output !== '';
-            })
-            ->action(function (): void {
-                $run = $this->lastRun();
-
-                $this->dispatch('cc-copy', output: $run === null ? '' : $run->output);
-
-                Notification::make()->title('Output copied')->success()->send();
-            });
-    }
-
     public function lastRun(): ?Run
     {
         return $this->lastRunId === null ? null : app(RunStore::class)->find($this->lastRunId);

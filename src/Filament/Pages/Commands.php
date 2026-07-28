@@ -233,6 +233,8 @@ class Commands extends Page
         app(RunStore::class)->put($run);
 
         $this->notifyOf($run);
+
+        $this->redirect(RunView::getUrl(['run' => $run->id]));
     }
 
     /**

@@ -40,11 +40,17 @@ class CommandCenterServiceProvider extends PackageServiceProvider
             return new CommandRegistry($sources);
         });
 
-        $this->app->scoped(Runs\RunStore::class, fn ($app): Runs\CacheRunStore => new Runs\CacheRunStore(
-            cache: $app->make('cache')->store(config('command-center.history.store')),
-            max: (int) config('command-center.history.max', 100),
-            ttlHours: (int) config('command-center.history.ttl_hours', 168),
-        ));
+        $this->app->scoped(Runs\RunStore::class, function ($app): Runs\RunStore {
+            if (config('command-center.history.driver') === 'database') {
+                return new Runs\DatabaseRunStore;
+            }
+
+            return new Runs\CacheRunStore(
+                cache: $app->make('cache')->store(config('command-center.history.store')),
+                max: (int) config('command-center.history.max', 100),
+                ttlHours: (int) config('command-center.history.ttl_hours', 168),
+            );
+        });
 
         $this->app->singleton(Execution\OutputBuffer::class, fn ($app): Execution\OutputBuffer => new Execution\OutputBuffer(
             $app->make('cache')->store(config('command-center.history.store')),

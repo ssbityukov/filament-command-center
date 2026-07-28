@@ -78,6 +78,12 @@ return [
      | it. Plan 4 adds a durable database driver.
      */
     'history' => [
+        /*
+         | 'cache' needs no migration and is capped and TTL-bounded, which makes
+         | it a recent-activity log rather than an audit trail — a cache flush
+         | clears it. 'database' is durable and needs the published migration.
+         */
+        'driver' => 'cache',
         'max' => 100,
         'ttl_hours' => 168,
         'store' => null,

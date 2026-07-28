@@ -106,8 +106,12 @@ final class SchemaBuilder
     {
         /** @var ModelVariable $variable */
         return Select::make($variable->name)
-            ->options(fn (): array => $variable->options())
-            ->searchable();
+            ->searchable()
+            // Server-side search rather than a preloaded option list: the table
+            // behind a model variable can be large, and rendering a dropdown
+            // should not mean loading all of it.
+            ->getSearchResultsUsing(fn (string $search): array => $variable->search($search))
+            ->getOptionLabelUsing(fn (mixed $value): ?string => $variable->labelFor($value));
     }
 
     private function flagField(Flag $flag): Toggle

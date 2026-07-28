@@ -102,6 +102,37 @@ final class ModelVariable extends Variable
     }
 
     /**
+     * Matching records for a search term, as value => title.
+     *
+     * Capped, and queried rather than filtered in PHP: a select over a large
+     * table would otherwise load every row into memory to render a dropdown.
+     *
+     * @return array<array-key, string>
+     */
+    public function search(string $term, int $limit = 50): array
+    {
+        return $this->optionsQuery()
+            ->where($this->titleAttribute, 'like', '%'.$term.'%')
+            ->limit($limit)
+            ->pluck($this->titleAttribute, $this->valueAttribute)
+            ->map(fn (mixed $title): string => (string) $title)
+            ->all();
+    }
+
+    /**
+     * The title for one stored value, so a saved selection still reads as a
+     * name rather than as an id.
+     */
+    public function labelFor(mixed $value): ?string
+    {
+        $title = $this->optionsQuery()
+            ->where($this->valueAttribute, $value)
+            ->value($this->titleAttribute);
+
+        return $title === null ? null : (string) $title;
+    }
+
+    /**
      * Re-resolve a submitted value through the variable's own query.
      *
      * Validating this in the UI would leave the Livewire boundary open: a

@@ -72,3 +72,31 @@ it('throws when no model class has been set', function (): void {
     expect(fn () => ModelVariable::make('user')->options())
         ->toThrow(UnknownModelValueException::class);
 });
+
+it('searches by the title attribute and caps the result set', function (): void {
+    foreach (range(1, 60) as $i) {
+        TestUser::query()->insert([
+            'name' => "Bulk {$i}", 'email' => "bulk{$i}@test.dev", 'password' => 'x',
+        ]);
+    }
+
+    $variable = ModelVariable::make('user')->model(TestUser::class);
+
+    expect($variable->search('Bulk'))->toHaveCount(50)
+        ->and($variable->search('Grace'))->toBe([2 => 'Grace']);
+});
+
+it('honours modifyQueryUsing when searching', function (): void {
+    $variable = ModelVariable::make('user')
+        ->model(TestUser::class)
+        ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('name', 'Ada'));
+
+    expect($variable->search('a'))->toBe([1 => 'Ada']);
+});
+
+it('resolves a label for a stored value', function (): void {
+    $variable = ModelVariable::make('user')->model(TestUser::class);
+
+    expect($variable->labelFor(2))->toBe('Grace')
+        ->and($variable->labelFor(999))->toBeNull();
+});

@@ -2,6 +2,15 @@
 
 All notable changes to this package are documented here.
 
+## 1.0.1 — 2026-07-29
+
+### Changed
+
+- **The PHP floor is `^8.3`, down from `^8.4`.** Nothing in `src/` used an 8.4
+  feature, and every dependency already allows 8.3, so the higher floor only
+  turned away Laravel 12 projects that had not moved yet. CI runs the suite on
+  8.3 as well — the row exists before the claim does.
+
 ## 1.0.0 — 2026-07-29
 
 ### Added

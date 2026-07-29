@@ -15,7 +15,7 @@ jobs:
         # Only what the suite is actually run against. A row here is a promise
         # that the version works; adding one without running it is how a package
         # ends up claiming support it has never had.
-        php: ['8.4', '8.5']
+        php: ['8.3', '8.4', '8.5']
         laravel: ['12.*', '13.*']
     name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
 

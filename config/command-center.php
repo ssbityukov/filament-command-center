@@ -119,87 +119,148 @@ return [
 
     /*
      | Command definitions, keyed by a unique slug.
+     |
+     | A starter set for a typical Laravel app ships here so a fresh install has
+     | something to run. It is still an allow-list: delete what you do not want,
+     | add what you do, and give anything dangerous its own 'ability'. Nothing
+     | outside this array can ever be executed.
+     |
+     | Remember that the module is invisible until you define the access gate,
+     | so these are not reachable by anyone until you say who may reach them.
+     |
+     | Run `php artisan command-center:check` after editing. It validates every
+     | definition and fails on anything misconfigured.
+     |
+     | Keys: run, label, group, help, timeout, queue, ability, confirm,
+     | concurrency, rate_limit, progress, variables, flags, type
+     | ('artisan' by default, 'shell' if shell execution is enabled).
      */
-    /*
-     | Command definitions, keyed by a unique slug.
-     |
-     | Empty on purpose. This is an allow-list, and a package that ships a
-     | populated one decides for you what your panel can execute — including
-     | things like migrate. You opt in, command by command.
-     |
-     | A starter set for a typical Laravel app is below. Uncomment what you
-     | actually want, then run `php artisan command-center:check`, which will
-     | tell you if anything is misconfigured before your users find out.
-     |
-     | 'commands' => [
-     |     'cache-clear' => [
-     |         'run' => 'cache:clear',
-     |         'label' => 'Clear application cache',
-     |         'group' => 'Cache',
-     |         'timeout' => 30,
-     |     ],
-     |     'config-clear' => [
-     |         'run' => 'config:clear',
-     |         'label' => 'Clear config cache',
-     |         'group' => 'Cache',
-     |         'timeout' => 30,
-     |     ],
-     |     'view-clear' => [
-     |         'run' => 'view:clear',
-     |         'label' => 'Clear compiled views',
-     |         'group' => 'Cache',
-     |         'timeout' => 30,
-     |     ],
-     |     'optimize' => [
-     |         'run' => 'optimize',
-     |         'label' => 'Optimize',
-     |         'group' => 'Optimisation',
-     |         'timeout' => 120,
-     |         'queue' => true,
-     |     ],
-     |     'optimize-clear' => [
-     |         'run' => 'optimize:clear',
-     |         'label' => 'Clear all caches',
-     |         'group' => 'Optimisation',
-     |         'timeout' => 120,
-     |         'queue' => true,
-     |     ],
-     |     'queue-restart' => [
-     |         'run' => 'queue:restart',
-     |         'label' => 'Restart queue workers',
-     |         'group' => 'Queue',
-     |         'timeout' => 30,
-     |     ],
-     |     'queue-failed' => [
-     |         'run' => 'queue:failed',
-     |         'label' => 'List failed jobs',
-     |         'group' => 'Queue',
-     |         'timeout' => 30,
-     |     ],
-     |     'storage-link' => [
-     |         'run' => 'storage:link',
-     |         'label' => 'Link storage directory',
-     |         'group' => 'Maintenance',
-     |         'timeout' => 30,
-     |     ],
-     |     'about' => [
-     |         'run' => 'about',
-     |         'label' => 'Application overview',
-     |         'group' => 'Diagnostics',
-     |         'timeout' => 30,
-     |     ],
-     |
-     |     // Destructive. Give it a gate and a confirmation, or leave it out.
-     |     'migrate' => [
-     |         'run' => 'migrate --force',
-     |         'label' => 'Run migrations',
-     |         'group' => 'Maintenance',
-     |         'timeout' => 300,
-     |         'queue' => true,
-     |         'ability' => 'run-migrations',
-     |         'confirm' => 'This applies pending migrations to the live database. Continue?',
-     |     ],
-     | ],
-     */
-    'commands' => [],
+    'commands' => [
+        'cache-clear' => [
+            'run' => 'cache:clear',
+            'label' => 'Clear application cache',
+            'group' => 'Cache',
+            'help' => 'Flushes the application cache store.',
+            'timeout' => 30,
+        ],
+        'config-clear' => [
+            'run' => 'config:clear',
+            'label' => 'Clear config cache',
+            'group' => 'Cache',
+            'timeout' => 30,
+        ],
+        'view-clear' => [
+            'run' => 'view:clear',
+            'label' => 'Clear compiled views',
+            'group' => 'Cache',
+            'timeout' => 30,
+        ],
+        'cache-forget' => [
+            'run' => 'cache:forget {key}',
+            'label' => 'Forget a cache key',
+            'group' => 'Cache',
+            'timeout' => 30,
+            'variables' => [
+                'key' => [
+                    'label' => 'Cache key',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+            ],
+        ],
+        'optimize' => [
+            'run' => 'optimize',
+            'label' => 'Optimize',
+            'group' => 'Optimisation',
+            'help' => 'Caches config, routes, views and events.',
+            'timeout' => 30,
+        ],
+        'optimize-clear' => [
+            'run' => 'optimize:clear',
+            'label' => 'Clear all caches',
+            'group' => 'Optimisation',
+            'timeout' => 30,
+        ],
+        'queue-restart' => [
+            'run' => 'queue:restart',
+            'label' => 'Restart queue workers',
+            'group' => 'Queue',
+            'help' => 'Gracefully restarts workers, usually after a deploy.',
+            'timeout' => 30,
+        ],
+        'queue-failed' => [
+            'run' => 'queue:failed',
+            'label' => 'List failed jobs',
+            'group' => 'Queue',
+            'timeout' => 30,
+        ],
+        'queue-retry' => [
+            'run' => 'queue:retry {id}',
+            'label' => 'Retry failed jobs',
+            'group' => 'Queue',
+            'help' => 'Retry one failed job by id, or "all" for every one of them.',
+            'timeout' => 30,
+            'variables' => [
+                'id' => [
+                    'label' => 'Job id',
+                    'type' => 'text',
+                    'default' => 'all',
+                    'required' => true,
+                ],
+            ],
+        ],
+        'migrate-status' => [
+            'run' => 'migrate:status',
+            'label' => 'Migration status',
+            'group' => 'Database',
+            'timeout' => 30,
+        ],
+        'storage-link' => [
+            'run' => 'storage:link',
+            'label' => 'Link storage directory',
+            'group' => 'Maintenance',
+            'timeout' => 30,
+        ],
+        'about' => [
+            'run' => 'about',
+            'label' => 'Application overview',
+            'group' => 'Diagnostics',
+            'timeout' => 30,
+        ],
+
+        /*
+         | The rest change the running application. They ship enabled because a
+         | command runner that cannot deploy is a toy, but each one asks first,
+         | and each is worth an 'ability' of its own before it reaches anyone
+         | but you.
+         */
+        'migrate' => [
+            'run' => 'migrate',
+            'label' => 'Run migrations',
+            'group' => 'Database',
+            'help' => 'Applies pending migrations. Queue this one if your migrations are slow.',
+            'timeout' => 30,
+            'confirm' => 'This applies pending migrations to the live database. Continue?',
+            'flags' => [
+                '--force' => [
+                    'label' => 'Force in production',
+                    'default' => true,
+                ],
+            ],
+        ],
+        'down' => [
+            'run' => 'down',
+            'label' => 'Enable maintenance mode',
+            'group' => 'Maintenance',
+            'help' => 'Takes the application offline — including this panel, so plan how you will bring it back.',
+            'timeout' => 30,
+            'confirm' => 'This takes the whole application offline, this panel included. Continue?',
+        ],
+        'up' => [
+            'run' => 'up',
+            'label' => 'Disable maintenance mode',
+            'group' => 'Maintenance',
+            'timeout' => 30,
+        ],
+    ],
 ];

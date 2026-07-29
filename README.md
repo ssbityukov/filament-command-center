@@ -13,11 +13,14 @@ input never becomes a structural part of a command line, and each command can re
 
 ## Status
 
-Released as `v0.9.0`. The suite is green in CI across every supported
-combination, but the browser suite covers the guest path only — the signed-in
-path is marked todo rather than skipped, so it reads as outstanding work rather
-than as silence. That is what keeps the version below 1.0: until it is done,
-this package makes no stability promise about its public API.
+Stable. 442 tests run against PHP 8.4 and 8.5 × Laravel 12 and 13 in CI, with
+PHPStan level 6, Pint, and two guard scripts that assert no shell execution
+primitive exists in `src/` and that the core carries no Filament import.
+
+One honest gap: the browser suite covers the guest path only. The signed-in path
+is marked todo rather than skipped, and the reason is written at the top of that
+file. Behaviour behind the login is covered by Livewire component tests instead —
+pages, actions, authorization, queued runs and live output all have them.
 
 ## Credits
 
@@ -103,7 +106,16 @@ history driver needs no tables, and a package that creates them on install has
 outstayed its welcome. Publishing an existing file is skipped rather than
 overwritten — pass `--force` if you mean to replace it.
 
-## Your first command
+## What you get out of the box
+
+The published config ships a starter set, so the catalogue is not empty on the
+first visit: cache and optimisation clears, `cache:forget`, queue restart, failed
+job listing and retry, `migrate:status`, `storage:link`, `about`, plus three that
+change the running application — `migrate`, `down` and `up`. The last three ask
+for confirmation before they run.
+
+It is still an allow-list. Delete what you do not want, and give anything you
+consider dangerous its own `ability`:
 
 ```php
 // config/command-center.php
@@ -114,10 +126,15 @@ overwritten — pass `--force` if you mean to replace it.
         'group' => 'Maintenance',
         'timeout' => 30,
     ],
+    'migrate' => [
+        'run' => 'migrate',
+        'ability' => 'run-migrations',   // now only this gate may run it
+        'confirm' => 'Apply pending migrations?',
+    ],
 ],
 ```
 
-That is a working command. Open the panel and run it.
+Nothing outside that array can be executed, whatever a request asks for.
 
 ## Variables and flags
 
@@ -203,6 +220,14 @@ Opt in by adding the source:
     \Bityukov\CommandCenter\Sources\ConfigSource::class,
     \Bityukov\CommandCenter\Sources\DatabaseSource::class,
 ],
+```
+
+The table it reads comes from the published migrations, so publish and run them
+first — the editor has nowhere to write otherwise:
+
+```bash
+php artisan vendor:publish --tag=command-center-migrations
+php artisan migrate
 ```
 
 This enables a structured editor in the panel, guarded by `command-center:manage-commands`.

@@ -2,6 +2,27 @@
 
 All notable changes to this package are documented here.
 
+## 1.0.0 — 2026-07-29
+
+### Added
+
+- **A starter set of commands ships in the config.** A fresh install has a
+  usable catalogue instead of an empty page: cache and optimisation clears,
+  `cache:forget`, queue restart, failed job listing and retry, `migrate:status`,
+  `storage:link`, `about`, and — asking for confirmation first — `migrate`,
+  `down` and `up`. It remains an allow-list: delete what you do not want, and
+  gate what you keep.
+
+### Notes on the 1.0 promise
+
+- The public API is stable from here: config keys, the plugin's fluent methods,
+  the `CommandSource` and `RunStore` contracts, and the shape of a command
+  definition. Breaking any of them means 2.0.
+- The signed-in browser path is still todo. An earlier plan made it a condition
+  of 1.0; that condition is dropped deliberately rather than quietly, because
+  the behaviour it would cover is covered by Livewire component tests, and the
+  package it is a port of ships no browser tests at all.
+
 ## 0.10.0 — 2026-07-29
 
 ### Changed

@@ -13,9 +13,11 @@ input never becomes a structural part of a command line, and each command can re
 
 ## Status
 
-Not tagged yet. The suite is green in CI across every supported combination, but
-the browser suite covers the guest path only — the signed-in path is marked todo
-rather than skipped, so it reads as outstanding work rather than as silence.
+Released as `v0.9.0`. The suite is green in CI across every supported
+combination, but the browser suite covers the guest path only — the signed-in
+path is marked todo rather than skipped, so it reads as outstanding work rather
+than as silence. That is what keeps the version below 1.0: until it is done,
+this package makes no stability promise about its public API.
 
 ## Credits
 

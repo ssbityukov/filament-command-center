@@ -2,7 +2,12 @@
 
 All notable changes to this package are documented here.
 
-## Unreleased
+## 0.9.0 — 2026-07-29
+
+First published release. The number is below 1.0 on purpose: the suite is green in CI across
+every supported combination, but the browser suite covers the guest path only. A 1.0 tag waits
+on the signed-in path, so until then this release makes no stability promise about the public
+API and does not claim end-to-end browser coverage.
 
 ### Definitions and argv safety
 

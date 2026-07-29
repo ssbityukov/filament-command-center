@@ -11,6 +11,8 @@ input never becomes a structural part of a command line, and each command can re
 - Run history with no migration required, or a durable database driver
 - `command-center:check` validates every definition in CI
 
+![The command catalogue, with a finished run above it](art/catalogue.png)
+
 ## Status
 
 Stable. 442 tests run against PHP 8.4 and 8.5 × Laravel 12 and 13 in CI, with

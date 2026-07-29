@@ -18,10 +18,10 @@ All notable changes to this package are documented here.
 - The public API is stable from here: config keys, the plugin's fluent methods,
   the `CommandSource` and `RunStore` contracts, and the shape of a command
   definition. Breaking any of them means 2.0.
-- The signed-in browser path is still todo. An earlier plan made it a condition
-  of 1.0; that condition is dropped deliberately rather than quietly, because
-  the behaviour it would cover is covered by Livewire component tests, and the
-  package it is a port of ships no browser tests at all.
+- An earlier plan made a browser smoke test a condition of 1.0. That condition
+  is dropped deliberately rather than quietly: the behaviour it would cover is
+  covered by Livewire component tests, and the package this one is a port of
+  ships no browser tests at all.
 
 ## 0.10.0 — 2026-07-29
 

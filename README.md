@@ -17,10 +17,9 @@ Stable. 442 tests run against PHP 8.4 and 8.5 × Laravel 12 and 13 in CI, with
 PHPStan level 6, Pint, and two guard scripts that assert no shell execution
 primitive exists in `src/` and that the core carries no Filament import.
 
-One honest gap: the browser suite covers the guest path only. The signed-in path
-is marked todo rather than skipped, and the reason is written at the top of that
-file. Behaviour behind the login is covered by Livewire component tests instead —
-pages, actions, authorization, queued runs and live output all have them.
+There is no browser suite. Everything behind the login — pages, actions,
+authorization, queued runs, live output, the editor — is covered by Livewire
+component tests, which is the same bar the package this one is a port of sets.
 
 ## Credits
 

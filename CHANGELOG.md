@@ -2,6 +2,21 @@
 
 All notable changes to this package are documented here.
 
+## Unreleased
+
+### Changed
+
+- **The module is hidden until the application says who may see it.** The
+  catalogue, run view and history now check `abilities.access`
+  (`command-center:access` by default) instead of being visible to anyone who
+  can open the panel. An undefined gate denies, so an upgrade makes the module
+  disappear until `Gate::define('command-center:access', …)` is added. Set
+  `abilities.access` to `null` to keep the old behaviour deliberately.
+  This replaces the split where the pages were open and only the editor was
+  gated.
+- `command-center:check` warns when the access gate is undefined, so a hidden
+  module explains itself.
+
 ## 0.9.0 — 2026-07-29
 
 First published release. The number is below 1.0 on purpose: the suite is green in CI across

@@ -65,6 +65,31 @@ Publish the config:
 php artisan vendor:publish --tag=command-center-config
 ```
 
+Say who may reach the module. **Until you do, nobody sees it** — the gate is
+undefined, and Laravel denies an undefined gate:
+
+```php
+// app/Providers/AppServiceProvider.php, in boot()
+use Illuminate\Support\Facades\Gate;
+
+Gate::define('command-center:access', fn ($user) => $user->is_admin);
+Gate::define('command-center:manage-commands', fn ($user) => $user->is_admin);
+Gate::define('command-center:prune-history', fn ($user) => $user->is_admin);
+```
+
+Swap `is_admin` for whatever your application uses — a role check, a policy
+call, an email allow-list. The three abilities are named in
+`config/command-center.php` under `abilities`, so you can rename them.
+
+`access` decides whether the catalogue, a run and the history appear at all.
+`manage-commands` guards the database editor, and `prune-history` guards
+deleting run records. Setting `abilities.access` to `null` shows the module to
+everyone who can open the panel; that is a decision worth making on purpose,
+because each command's own `ability` is then the only thing left.
+
+`php artisan command-center:check` warns when the access gate is missing, so a
+module that has gone quiet reports why instead of looking broken.
+
 Everything publishable, if you need the rest:
 
 | Tag | What it gives you |
@@ -128,12 +153,17 @@ Commands you cannot run are absent from the catalogue payload entirely, and the 
 re-checks the gate server-side. Reading a run's output requires the same ability as running the
 command that produced it.
 
-Two package-level abilities, both configurable under `abilities`:
+Three package-level abilities, all configurable under `abilities`:
 
 | Ability | Guards |
 |---|---|
+| `command-center:access` | Seeing the module at all: catalogue, run view, history |
 | `command-center:prune-history` | Deleting run records, individually or in bulk |
 | `command-center:manage-commands` | The database command editor |
+
+All three deny until your application defines them. If a panel needs its own
+rule instead, `CommandCenterPlugin::make()->authorize(fn ($user) => …)`
+overrides `access` for that panel.
 
 ## Queued commands
 

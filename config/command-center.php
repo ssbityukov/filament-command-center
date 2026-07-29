@@ -98,6 +98,17 @@ return [
      | Gate abilities the package checks for its own destructive actions.
      */
     'abilities' => [
+        /*
+         | Who sees the module at all: the command catalogue, a run, and the
+         | history. Define this gate in your application — an undefined gate
+         | denies, so the pages stay hidden until you say who may reach them.
+         |
+         | Set it to null to make the module visible to everyone who can open
+         | the panel. That is a decision, not a default: each command's own
+         | 'ability' is then the only thing standing between a panel user and
+         | running it.
+         */
+        'access' => 'command-center:access',
         'prune_history' => 'command-center:prune-history',
         /*
          | Whoever holds this can define what the panel is able to execute.

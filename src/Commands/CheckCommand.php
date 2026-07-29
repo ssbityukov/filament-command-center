@@ -40,6 +40,7 @@ final class CheckCommand extends Command
             $this->checkDefinition($definition);
         }
 
+        $this->checkAccessGateIsDefined();
         $this->checkDatabaseSourceIsGuarded();
 
         foreach ($this->warnings as $warning) {
@@ -62,6 +63,29 @@ final class CheckCommand extends Command
         ));
 
         return $this->errors === [] ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * A warning, not an error. An undefined access gate hides the whole module,
+     * which is safe but looks like a broken install, so it is worth saying out
+     * loud. It stays a warning for the same reason a per-command ability does:
+     * a Gate::before callback serves abilities that Gate::has() cannot see.
+     */
+    private function checkAccessGateIsDefined(): void
+    {
+        $ability = config('command-center.abilities.access');
+
+        if ($ability === null || $ability === '') {
+            return;
+        }
+
+        $ability = (string) $ability;
+
+        if (! $this->gateExists($ability)) {
+            $this->warnings[] = "The gate \"{$ability}\" is not defined, so the Command Center is hidden "
+                .'from every user. Define it to choose who may reach the module, or set '
+                .'command-center.abilities.access to null to show it to everyone who can open the panel.';
+        }
     }
 
     /**

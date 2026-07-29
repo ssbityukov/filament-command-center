@@ -245,6 +245,31 @@ it('fails when the database source is enabled without a defined managing gate', 
         ->assertExitCode(1);
 });
 
+it('warns when the access gate is not defined, since the module is then invisible', function (): void {
+    // The suite defines the default ability, so this points at one nobody did.
+    config()->set('command-center.abilities.access', 'command-center:undefined-access');
+
+    $this->artisan('command-center:check')
+        ->expectsOutputToContain('command-center:undefined-access')
+        ->assertExitCode(0);
+});
+
+it('says nothing about access when the gate is defined', function (): void {
+    Gate::define('command-center:access', fn (): bool => true);
+
+    $this->artisan('command-center:check')
+        ->doesntExpectOutputToContain('command-center:access')
+        ->assertExitCode(0);
+});
+
+it('says nothing about access when the ability is deliberately null', function (): void {
+    config()->set('command-center.abilities.access', null);
+
+    $this->artisan('command-center:check')
+        ->doesntExpectOutputToContain('command-center:access')
+        ->assertExitCode(0);
+});
+
 it('passes when the database source is enabled and the managing gate exists', function (): void {
     config()->set('command-center.sources', [
         ConfigSource::class,

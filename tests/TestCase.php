@@ -18,6 +18,7 @@ use Filament\Schemas\SchemasServiceProvider;
 use Filament\Support\SupportServiceProvider;
 use Filament\Tables\TablesServiceProvider;
 use Filament\Widgets\WidgetsServiceProvider;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ViewErrorBag;
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -72,6 +73,11 @@ abstract class TestCase extends Orchestra
         // Livewire test helper skips middleware, so pages would otherwise
         // render with no panel in context.
         Filament::setCurrentPanel('test');
+
+        // The module is hidden until an application defines this gate, so the
+        // suite defines it — the same line an adopting app writes. Tests that
+        // are about the closed door define nothing and assert on that.
+        Gate::define('command-center:access', fn (): bool => true);
     }
 
     protected function defineEnvironment($app): void

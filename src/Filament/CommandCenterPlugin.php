@@ -14,6 +14,7 @@ use Filament\Contracts\Plugin;
 use Filament\Facades\Filament;
 use Filament\Panel;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 final class CommandCenterPlugin implements Plugin
 {
@@ -113,13 +114,31 @@ final class CommandCenterPlugin implements Plugin
         return $this->navigationGroup;
     }
 
+    /**
+     * Whether this panel shows the Command Center at all.
+     *
+     * The default is the configured ability, so an application that has said
+     * nothing about who may reach the module gets an undefined gate, which
+     * denies. The alternative — visible to whoever opens the panel — would make
+     * `composer require` a permission grant, and it read as an inconsistency
+     * next to the command editor, which has always been gated.
+     *
+     * A null ability is the documented way to open the module to every panel
+     * user; per-command abilities still apply.
+     */
     public function canAccess(): bool
     {
-        if ($this->authorizeUsing === null) {
+        if ($this->authorizeUsing !== null) {
+            return (bool) ($this->authorizeUsing)(Auth::user());
+        }
+
+        $ability = config('command-center.abilities.access');
+
+        if ($ability === null || $ability === '') {
             return true;
         }
 
-        return (bool) ($this->authorizeUsing)(Auth::user());
+        return Gate::allows((string) $ability);
     }
 
     public function register(Panel $panel): void

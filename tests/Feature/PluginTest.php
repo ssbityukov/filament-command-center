@@ -10,6 +10,7 @@ use Bityukov\CommandCenter\Filament\Resources\CommandRecordResource;
 use Bityukov\CommandCenter\Tests\Fixtures\TestUser;
 use Filament\Facades\Filament;
 use Filament\Pages\Dashboard;
+use Illuminate\Support\Facades\Gate;
 
 it('registers under a stable id', function (): void {
     expect(CommandCenterPlugin::make()->getId())->toBe('command-center');
@@ -58,8 +59,42 @@ it('groups the pages when an app asks for it', function (): void {
     expect(Commands::getNavigationGroup())->toBe('Operations');
 });
 
-it('allows access when no authorize callback is set', function (): void {
+it('denies access when the configured ability is not granted', function (): void {
+    // The panel decides who may reach the module, and an app that has said
+    // nothing has not said yes. Installing the package must not hand the whole
+    // feature to everyone who can open the panel.
+    //
+    // The suite defines the default ability for every other test, so this one
+    // points the config at a gate nobody defined — which is exactly the state a
+    // fresh install is in.
+    config()->set('command-center.abilities.access', 'command-center:undefined-access');
+
+    $this->actingAs(new TestUser(['name' => 'Ada']));
+
+    expect(CommandCenterPlugin::make()->canAccess())->toBeFalse();
+});
+
+it('allows access when the configured ability is granted', function (): void {
+    $this->actingAs(new TestUser(['name' => 'Ada']));
+
+    Gate::define('command-center:access', fn (): bool => true);
+
     expect(CommandCenterPlugin::make()->canAccess())->toBeTrue();
+});
+
+it('allows access to everyone when the ability is set to null', function (): void {
+    // The documented opt-out for a panel whose every user is already trusted.
+    config()->set('command-center.abilities.access', null);
+
+    expect(CommandCenterPlugin::make()->canAccess())->toBeTrue();
+});
+
+it('lets the authorize callback override the ability', function (): void {
+    $this->actingAs(new TestUser(['name' => 'Ada']));
+
+    Gate::define('command-center:access', fn (): bool => false);
+
+    expect(CommandCenterPlugin::make()->authorize(fn (): bool => true)->canAccess())->toBeTrue();
 });
 
 it('denies access when the authorize callback returns false', function (): void {

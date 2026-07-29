@@ -15,7 +15,7 @@ input never becomes a structural part of a command line, and each command can re
 
 ## Status
 
-Stable. 442 tests run against PHP 8.4 and 8.5 × Laravel 12 and 13 in CI, with
+Stable. 442 tests run against PHP 8.3, 8.4 and 8.5 × Laravel 12 and 13 in CI, with
 PHPStan level 6, Pint, and two guard scripts that assert no shell execution
 primitive exists in `src/` and that the core carries no Filament import.
 

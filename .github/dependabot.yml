@@ -1,0 +1,12 @@
+version: 2
+
+updates:
+  # Actions are the only ecosystem with anything for an updater to maintain.
+  # composer.lock is not committed — the test matrix resolves dependencies fresh
+  # on every run, so a lockfile updater would have no lockfile to move.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci

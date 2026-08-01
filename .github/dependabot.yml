@@ -8,5 +8,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Let a release sit long enough for the community to spot a compromised
+    # or broken publish before it lands in a PR here.
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: ci

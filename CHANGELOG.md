@@ -2,6 +2,28 @@
 
 All notable changes to this package are documented here.
 
+## Unreleased
+
+### Fixed
+
+- **Queued runs reload the actor through the panel auth guard.** `RunCommandJob`
+  used `Auth::getProvider()` (the application default), so a Command Center on a
+  Filament panel with a custom `authGuard` — central admins, shop staff, and so
+  on — looked the user up in the wrong model. It did not merely fail to find
+  anybody: the same id in the default table is a different real person, and the
+  gate was asked about them. The catalogue now captures the current panel's
+  guard on the job, `command-center.auth_guard` remains available as a fallback,
+  and history uses the same resolver.
+
+  A guard is resolved through the provider named in its own config rather than
+  through the guard instance, so token guards — anything built on `RequestGuard`,
+  which carries no `getProvider()` — work too. A guard that names no resolvable
+  provider yields no actor, and the run is denied; it never falls back to the
+  default provider, because that is the failure being closed.
+
+  Runs queued by 1.0.1 and picked up after this upgrade are handled: a payload
+  without the new guard field reads as "no guard", the previous behaviour.
+
 ## 1.0.1 — 2026-07-29
 
 ### Changed

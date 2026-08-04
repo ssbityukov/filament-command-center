@@ -18,7 +18,9 @@ use Filament\Schemas\SchemasServiceProvider;
 use Filament\Support\SupportServiceProvider;
 use Filament\Tables\TablesServiceProvider;
 use Filament\Widgets\WidgetsServiceProvider;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ViewErrorBag;
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -92,11 +94,30 @@ abstract class TestCase extends Orchestra
         $app['config']->set('cache.default', 'array');
         $app['config']->set('session.driver', 'array');
         $app['config']->set('auth.providers.users.model', Fixtures\TestUser::class);
+
+        // A second guard over a second model, so the suite can prove that a run
+        // reloads its actor through the guard it was dispatched from rather than
+        // through the application default.
+        $app['config']->set('auth.guards.admin', [
+            'driver' => 'session',
+            'provider' => 'admins',
+        ]);
+        $app['config']->set('auth.providers.admins', [
+            'driver' => 'eloquent',
+            'model' => Fixtures\TestAdmin::class,
+        ]);
     }
 
     protected function defineDatabaseMigrations(): void
     {
         $this->loadLaravelMigrations();
+
+        Schema::create('admins', function (Blueprint $table): void {
+            $table->increments('id');
+            $table->string('name');
+            $table->string('email');
+            $table->string('password');
+        });
 
         // The package's own migrations are publishable rather than automatic,
         // so the suite loads them explicitly — the same thing an adopting app

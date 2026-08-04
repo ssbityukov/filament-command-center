@@ -361,6 +361,7 @@ class Commands extends Page implements HasTable
                 $definition,
                 $this->toInput($definition, $data),
                 Auth::id(),
+                Filament::getCurrentPanel()?->getAuthGuard(),
             );
         } catch (Throwable $exception) {
             $this->rejected($exception->getMessage());

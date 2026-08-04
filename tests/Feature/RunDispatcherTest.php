@@ -158,3 +158,26 @@ it('refuses to dispatch a command the user is not authorized for', function (): 
     expect($run->state)->toBe(RunState::Rejected)
         ->and($run->error)->toContain('authorized');
 });
+
+it('passes an explicit auth guard onto the queued job', function (): void {
+    Queue::fake();
+
+    app(RunDispatcher::class)->dispatch(definitionFor('queued-one'), [], userId: 1, authGuard: 'admin');
+
+    Queue::assertPushed(
+        RunCommandJob::class,
+        fn (RunCommandJob $job): bool => $job->authGuard === 'admin' && $job->userId === 1,
+    );
+});
+
+it('falls back to command-center.auth_guard when none is passed', function (): void {
+    Queue::fake();
+    config()->set('command-center.auth_guard', 'central');
+
+    app(RunDispatcher::class)->dispatch(definitionFor('queued-one'), [], userId: 1);
+
+    Queue::assertPushed(
+        RunCommandJob::class,
+        fn (RunCommandJob $job): bool => $job->authGuard === 'central',
+    );
+});

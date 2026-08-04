@@ -7,6 +7,7 @@ use Bityukov\CommandCenter\Jobs\RunCommandJob;
 use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
 use Bityukov\CommandCenter\Runs\RunStore;
+use Bityukov\CommandCenter\Tests\Fixtures\TestAdmin;
 use Bityukov\CommandCenter\Tests\Fixtures\TestUser;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\Process\PhpExecutableFinder;
@@ -121,4 +122,62 @@ it('gives the worker more time than the process is allowed', function (): void {
     app()->forgetScopedInstances();
 
     expect((new RunCommandJob('x', 'say', [], 1))->timeout)->toBeGreaterThan(45);
+});
+
+/*
+ | Id 1 is two different people: a denied user in the default table, an allowed
+ | admin behind the panel's own guard. A job that resolves through the wrong one
+ | does not merely fail to find somebody — it asks the gate about a stranger.
+ */
+function collidingActors(): void
+{
+    Gate::define('run-guarded', fn ($actor): bool => $actor->email === 'admin@test.dev');
+
+    TestUser::create(['name' => 'Ada', 'email' => 'ada@test.dev', 'password' => 'x']);
+    TestAdmin::create(['name' => 'Grace', 'email' => 'admin@test.dev', 'password' => 'x']);
+}
+
+it('reloads the actor through the auth guard captured on the job', function (): void {
+    collidingActors();
+
+    $run = queuedRun('guarded', 1);
+
+    app()->call([new RunCommandJob($run->id, 'guarded', [], 1, 'admin'), 'handle']);
+
+    expect(app(RunStore::class)->find($run->id)?->state)->toBe(RunState::Succeeded);
+});
+
+it('rejects the run when no guard sends it to the default provider', function (): void {
+    collidingActors();
+
+    $run = queuedRun('guarded', 1);
+
+    app()->call([new RunCommandJob($run->id, 'guarded', [], 1), 'handle']);
+
+    expect(app(RunStore::class)->find($run->id)?->state)->toBe(RunState::Rejected);
+});
+
+it('handles a job serialised before the guard was carried on the payload', function (): void {
+    // An actor id, deliberately: the guard is only read while reloading one, so
+    // a job with no actor would never touch the missing property.
+    TestUser::create(['name' => 'Ada', 'email' => 'ada@test.dev', 'password' => 'x']);
+
+    $run = queuedRun('say');
+
+    $payload = serialize(new RunCommandJob($run->id, 'say', [], 1));
+    $legacy = str_replace('s:9:"authGuard";N;', '', $payload);
+
+    expect($legacy)->not->toBe($payload);
+
+    $legacy = preg_replace_callback(
+        '/^(O:\d+:"[^"]+":)(\d+)(:\{)/',
+        fn (array $matches): string => $matches[1].((int) $matches[2] - 1).$matches[3],
+        $legacy,
+    );
+
+    $job = unserialize((string) $legacy);
+
+    app()->call([$job, 'handle']);
+
+    expect(app(RunStore::class)->find($run->id)?->state)->toBe(RunState::Succeeded);
 });

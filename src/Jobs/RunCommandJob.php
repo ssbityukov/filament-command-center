@@ -121,7 +121,10 @@ final class RunCommandJob implements ShouldQueue
             return null;
         }
 
-        return UserResolver::find($this->userId, $this->authGuard);
+        // ?? null, not a plain read: a job serialised before this property
+        // existed unserialises without it, and a typed property that was never
+        // initialised throws on access rather than reading as null.
+        return UserResolver::find($this->userId, $this->authGuard ?? null);
     }
 
     private function reject(RunStore $store, ?Run $stored, string $reason): void

@@ -35,8 +35,13 @@ guard into `RunDispatcher` at dispatch time, so the job payload carries the
 right guard even when this config key stays `null`.
 
 Without a matching guard, a queued run looks the actor up through the default
-provider and fails in apps where that table is not the one the panel authenticates
-against.
+provider — which, where that is not the table the panel authenticates against,
+resolves whoever else holds that id and authorizes the run against them.
+
+The guard is never instantiated; the provider named in its config is. Token
+guards therefore work as well as session guards. A guard naming no resolvable
+provider yields no actor, and the run is denied rather than falling back to the
+default provider.
 
 ## Sources
 

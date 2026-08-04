@@ -31,7 +31,9 @@ Hiding a command from the catalogue is UX, not a boundary. The check runs:
 2. In the run action, because a crafted Livewire call can name any key.
 3. In `RunDispatcher`, which is the entry point every caller goes through.
 4. In `RunCommandJob`, because a gate can be revoked between dispatch and
-   execution.
+   execution. The job reloads the actor through the auth guard captured at
+   dispatch (the panel's `authGuard`, or `command-center.auth_guard`), not
+   through the worker's default provider.
 
 ## Reading a run
 

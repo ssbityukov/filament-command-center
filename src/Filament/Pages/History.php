@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bityukov\CommandCenter\Filament\Pages;
 
 use Bityukov\CommandCenter\Authorization\RunVisibility;
+use Bityukov\CommandCenter\Authorization\UserResolver;
 use Bityukov\CommandCenter\Filament\CommandCenterPlugin;
 use Bityukov\CommandCenter\Runs\Run;
 use Bityukov\CommandCenter\Runs\RunState;
@@ -12,6 +13,7 @@ use Bityukov\CommandCenter\Runs\RunStore;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Clusters\Cluster;
+use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -20,7 +22,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 class History extends Page implements HasTable
@@ -235,9 +236,10 @@ class History extends Page implements HasTable
             return null;
         }
 
-        $provider = Auth::getProvider();
-
-        $user = $provider?->retrieveById($userId);
+        $user = UserResolver::find(
+            $userId,
+            Filament::getCurrentPanel()?->getAuthGuard(),
+        );
 
         if ($user === null) {
             return (string) $userId;

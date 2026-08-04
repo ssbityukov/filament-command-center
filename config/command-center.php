@@ -5,6 +5,18 @@ use Bityukov\CommandCenter\Sources\ConfigSource;
 
 return [
     /*
+     | Auth guard used when a queued run reloads the actor for authorization,
+     | and when history resolves a stored user id to a name.
+     |
+     | Null keeps the previous behaviour: Auth::getProvider() (the application
+     | default guard). Set this when Command Center lives on a Filament panel
+     | whose authGuard is not the default — for example 'central' or 'admin'.
+     | The Filament pages also pass the current panel's auth guard at dispatch,
+     | so this is mainly a fallback for non-panel callers.
+     */
+    'auth_guard' => null,
+
+    /*
      | Absolute path to the PHP binary used to run Artisan commands.
      | Null means auto-detect via Symfony's PhpExecutableFinder.
      */

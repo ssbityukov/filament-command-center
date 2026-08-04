@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bityukov\CommandCenter\Jobs;
 
 use Bityukov\CommandCenter\Authorization\Authorizer;
+use Bityukov\CommandCenter\Authorization\UserResolver;
 use Bityukov\CommandCenter\CommandRegistry;
 use Bityukov\CommandCenter\Execution\Cancellation;
 use Bityukov\CommandCenter\Execution\CommandRunner;
@@ -17,7 +18,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Auth;
 use Throwable;
 
 final class RunCommandJob implements ShouldQueue
@@ -45,6 +45,7 @@ final class RunCommandJob implements ShouldQueue
         public readonly string $commandKey,
         public readonly array $input,
         public readonly int|string|null $userId,
+        public readonly ?string $authGuard = null,
     ) {
         // The worker must outlive the process, not race it: if the worker were
         // killed first the process would be orphaned with nothing recording its
@@ -120,7 +121,7 @@ final class RunCommandJob implements ShouldQueue
             return null;
         }
 
-        return Auth::getProvider()?->retrieveById($this->userId);
+        return UserResolver::find($this->userId, $this->authGuard);
     }
 
     private function reject(RunStore $store, ?Run $stored, string $reason): void

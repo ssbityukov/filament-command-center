@@ -122,3 +122,23 @@ it('gives the worker more time than the process is allowed', function (): void {
 
     expect((new RunCommandJob('x', 'say', [], 1))->timeout)->toBeGreaterThan(45);
 });
+
+it('reloads the actor through the auth guard captured on the job', function (): void {
+    config()->set('auth.guards.admin', [
+        'driver' => 'session',
+        'provider' => 'admins',
+    ]);
+    config()->set('auth.providers.admins', [
+        'driver' => 'eloquent',
+        'model' => TestUser::class,
+    ]);
+
+    Gate::define('run-guarded', fn (TestUser $user): bool => $user->email === 'ok@test.dev');
+
+    $allowed = TestUser::create(['name' => 'Ok', 'email' => 'ok@test.dev', 'password' => 'x']);
+    $run = queuedRun('guarded', $allowed->id);
+
+    app()->call([new RunCommandJob($run->id, 'guarded', [], $allowed->id, 'admin'), 'handle']);
+
+    expect(app(RunStore::class)->find($run->id)?->state)->toBe(RunState::Succeeded);
+});

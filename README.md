@@ -183,6 +183,10 @@ All three deny until your application defines them. If a panel needs its own
 rule instead, `CommandCenterPlugin::make()->authorize(fn ($user) => …)`
 overrides `access` for that panel.
 
+Queued runs reload the actor through the panel's auth guard (or
+`command-center.auth_guard`). Without that, a worker using the default
+guard looks up the wrong user model.
+
 ## Queued commands
 
 ```php

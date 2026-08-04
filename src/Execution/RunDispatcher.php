@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bityukov\CommandCenter\Execution;
 
 use Bityukov\CommandCenter\Authorization\Authorizer;
+use Bityukov\CommandCenter\Authorization\UserResolver;
 use Bityukov\CommandCenter\Definitions\CommandDefinition;
 use Bityukov\CommandCenter\Jobs\RunCommandJob;
 use Bityukov\CommandCenter\Runs\Run;
@@ -33,8 +34,12 @@ final class RunDispatcher
     /**
      * @param  array<string, mixed>  $input
      */
-    public function dispatch(CommandDefinition $definition, array $input, int|string|null $userId): Run
-    {
+    public function dispatch(
+        CommandDefinition $definition,
+        array $input,
+        int|string|null $userId,
+        ?string $authGuard = null,
+    ): Run {
         // Checked here as well as in the calling UI. This class is the entry
         // point every caller goes through, so the guarantee belongs on it
         // rather than on each caller remembering.
@@ -66,7 +71,7 @@ final class RunDispatcher
             // immediately rather than held across the queue wait.
             $this->lock->release($definition, $owner);
 
-            return $this->queue($definition, $input, $userId);
+            return $this->queue($definition, $input, $userId, $authGuard);
         }
 
         try {
@@ -83,13 +88,23 @@ final class RunDispatcher
     /**
      * @param  array<string, mixed>  $input
      */
-    private function queue(CommandDefinition $definition, array $input, int|string|null $userId): Run
-    {
+    private function queue(
+        CommandDefinition $definition,
+        array $input,
+        int|string|null $userId,
+        ?string $authGuard,
+    ): Run {
         $run = Run::queued($definition, $this->redact($definition, $input), [], $userId);
 
         $this->store->put($run);
 
-        $job = new RunCommandJob($run->id, $definition->key, $input, $userId);
+        $job = new RunCommandJob(
+            $run->id,
+            $definition->key,
+            $input,
+            $userId,
+            UserResolver::resolveGuard($authGuard),
+        );
 
         $queue = $definition->queueName();
 

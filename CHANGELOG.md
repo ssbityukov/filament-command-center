@@ -2,6 +2,17 @@
 
 All notable changes to this package are documented here.
 
+## Unreleased
+
+### Fixed
+
+- **Queued runs reload the actor through the panel auth guard.** `RunCommandJob`
+  used `Auth::getProvider()` (the application default), so a Command Center on a
+  Filament panel with a custom `authGuard` — central admins, shop staff, and so
+  on — looked the user up in the wrong model and failed. The catalogue now
+  captures the current panel's guard on the job, `command-center.auth_guard`
+  remains available as a fallback, and history uses the same resolver.
+
 ## 1.0.1 — 2026-07-29
 
 ### Changed

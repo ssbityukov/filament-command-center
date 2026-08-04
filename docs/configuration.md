@@ -21,6 +21,23 @@ buys you an orphaned process when the web server gives up on the request.
 allow-listed and still execute as argument vectors; the flag only decides
 whether that category is permitted.
 
+## Authentication
+
+| Key | Default | What it does |
+|---|---|---|
+| `auth_guard` | `null` | Guard used to reload a stored user id on queued runs and in history. |
+
+`null` keeps the previous behaviour: `Auth::getProvider()` (the application
+default). Set this when Command Center is registered on a Filament panel whose
+`authGuard` is not the default — for example a `central` or `admin` guard with
+its own user model. The catalogue page also passes the current panel's auth
+guard into `RunDispatcher` at dispatch time, so the job payload carries the
+right guard even when this config key stays `null`.
+
+Without a matching guard, a queued run looks the actor up through the default
+provider and fails in apps where that table is not the one the panel authenticates
+against.
+
 ## Sources
 
 ```php
